@@ -9,7 +9,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 import {
   ChevronIcon, FpsIcon, HdrIcon, HelpIcon,
   InspectIcon, LayersIcon, LightningIcon, ShieldIcon, SparkIcon, FilmIcon,
-  PremiumKeyIcon, UserIcon
+  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon
 } from './icons.jsx';
 import { ShutterText } from '@/components/ui/hero-shutter-text.jsx';
 import { AnimatedText } from '@/components/ui/animated-text.jsx';
@@ -131,6 +131,7 @@ export default function App() {
   const [ownerAuthenticated, setOwnerAuthenticated] = useState(false);
   const [isMasterOwner, setIsMasterOwner] = useState(false);
   const [currentUserName, setCurrentUserName] = useState(() => lsGet('obitoUserName') || '');
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [loginError, setLoginError] = useState('');
@@ -428,32 +429,62 @@ export default function App() {
         {/* Right Segment: Access Key & Clock */}
         <div className="topbar-right">
           {memberPreview && ownerAuthenticated && (
-            <>
-              {currentUserName && (
-                <div className="topbar-user-badge" title={`Signed in as ${currentUserName}`}>
-                  <UserIcon width={13} height={13} />
-                  <span className="user-name-text">{currentUserName}</span>
-                </div>
-              )}
-              {isMasterOwner && (
-                <button
-                  type="button"
-                  className="key-badge-btn configured admin-btn"
-                  onClick={() => setShowAdminModal(true)}
-                  title="Manage Referral & Client Passes"
-                >
-                  <PremiumKeyIcon width={13} height={13} />
-                  <span>Passes</span>
-                </button>
-              )}
+            <div className="topbar-user-menu-wrap">
               <button
                 type="button"
-                className="key-badge-btn configured"
-                onClick={() => { onKeyChange(''); setOwnerAuthenticated(false); setIsMasterOwner(false); setActiveTab('optimizer'); }}
+                className={`key-badge-btn configured user-profile-btn ${showUserMenu ? 'active' : ''}`}
+                onClick={() => setShowUserMenu((v) => !v)}
+                title="Account Menu"
+                aria-expanded={showUserMenu}
               >
-                Sign out
+                <UserIcon width={13} height={13} />
+                <span className="user-name-text">{currentUserName || 'Member'}</span>
+                <ChevronDownIcon width={11} height={11} className={`user-menu-arrow ${showUserMenu ? 'open' : ''}`} />
               </button>
-            </>
+
+              {showUserMenu && (
+                <>
+                  <div className="user-menu-backdrop" onClick={() => setShowUserMenu(false)} />
+                  <div className="user-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                    <div className="user-dropdown-header">
+                      <span className="user-dropdown-label">Signed in as</span>
+                      <strong className="user-dropdown-name">{currentUserName || 'Member'}</strong>
+                    </div>
+
+                    <div className="user-dropdown-divider" />
+
+                    {isMasterOwner && (
+                      <button
+                        type="button"
+                        className="user-dropdown-item admin"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowAdminModal(true);
+                        }}
+                      >
+                        <PremiumKeyIcon width={14} height={14} />
+                        <span>Passes & Referrals</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="user-dropdown-item signout"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onKeyChange('');
+                        setOwnerAuthenticated(false);
+                        setIsMasterOwner(false);
+                        setActiveTab('optimizer');
+                      }}
+                    >
+                      <LogoutIcon width={14} height={14} />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {!memberPreview && <button
             type="button"

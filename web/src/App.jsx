@@ -176,6 +176,8 @@ export default function App() {
 
   const signInOwner = async (e) => {
     e.preventDefault();
+    // Release iOS keyboard/focus before switching away from the sign-in view.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     setLoginError('');
     if (demoClientId.trim().toLowerCase() !== 'owner') { setLoginError('Use the client ID provided to you.'); return; }
     try {

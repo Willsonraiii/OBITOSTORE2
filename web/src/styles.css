@@ -3386,7 +3386,7 @@ button {
   .member-signin-view .dropzone-text{margin-bottom:13px}
   .member-inline-form{max-width:285px;margin-inline:auto}
   .member-inline-form label{margin-bottom:6px}
-  .member-inline-form .studio-input{display:block;width:100%;height:42px;margin:0 auto 11px;padding:8px 14px;border-radius:999px;background:rgba(20,24,36,.7);border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.12);font-size:14px}
+  .member-inline-form .studio-input{display:block;width:100%;height:42px;margin:0 auto 11px;padding:8px 14px;border-radius:999px;background:rgba(20,24,36,.7);border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.12);font-size:16px}
   .member-inline-actions{gap:7px;margin-top:5px}
   .member-inline-actions .btn-primary-hero{height:42px}
   .member-inline-actions .btn-secondary{padding:7px 15px;font-size:12px}

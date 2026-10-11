@@ -9,3 +9,5 @@ tmp/
 *.hevc
 *.bin
 library.json
+members.json
+.kilo/

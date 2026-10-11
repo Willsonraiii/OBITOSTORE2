@@ -39,6 +39,18 @@ import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  getMembersStore,
+  authenticateClient,
+  findActiveClientByCode,
+  redeemReferralCode,
+  createReferral,
+  toggleReferralStatus,
+  deleteReferral,
+  createClientManually,
+  toggleClientStatus,
+  deleteClient
+} from './members-store.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PIPELINE_TOOL = path.join(ROOT, 'tools', 'rtx-pipeline.js');
@@ -334,38 +346,187 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, f] of failedKeyAttempts) if (now - f.first > KEY_WINDOW_MS && now > f.lockedUntil) failedKeyAttempts.delete(id);
 }, 60 * 1000).unref();
-app.use('/api', (req, res, next) => {
+app.use('/api', async (req, res, next) => {
   // Inspection is public; optimization, jobs and library remain protected.
   if (req.path === '/inspect' || req.path === '/inspect-link') return next();
-  if (!ACCESS_TOKEN) return next();
+  // Public auth & referral redemption endpoints
+  if (req.path === '/auth/redeem-referral' || req.path === '/auth/login') return next();
+
   const id = clientId(req);
   const rec = failedKeyAttempts.get(id);
   if (rec && Date.now() < rec.lockedUntil) {
     res.set('Retry-After', String(Math.ceil((rec.lockedUntil - Date.now()) / 1000)));
     return res.status(429).json({ error: 'Too many wrong keys. Try again in a few minutes.' });
   }
-  const given = String(req.headers['x-access-token'] || req.query.token || '');
-  if (given !== ACCESS_TOKEN) {
-    if (given) { // only real wrong guesses count; a missing key (page not unlocked yet) does not
-      const now = Date.now();
-      const r = rec && now - rec.first <= KEY_WINDOW_MS ? rec : { count: 0, first: now, lockedUntil: 0 };
-      r.count += 1;
-      if (r.count >= KEY_MAX_FAILS) r.lockedUntil = now + KEY_LOCK_MS;
-      failedKeyAttempts.set(id, r);
-    }
-    return res.status(401).json({ error: 'Unauthorized — wrong or missing access token.' });
+
+  const given = String(req.headers['x-access-token'] || req.query.token || '').trim();
+
+  // 1. Check if owner master ACCESS_TOKEN matches
+  if (ACCESS_TOKEN && given === ACCESS_TOKEN) {
+    if (rec) failedKeyAttempts.delete(id);
+    req.isOwner = true;
+    return next();
   }
-  if (rec) failedKeyAttempts.delete(id);
-  next();
+
+  // 2. Check if given key belongs to an active client in members store
+  const activeClient = await findActiveClientByCode(given);
+  if (activeClient) {
+    if (rec) failedKeyAttempts.delete(id);
+    req.client = activeClient;
+    req.isOwner = false;
+    return next();
+  }
+
+  // If no ACCESS_TOKEN was set AND no clients exist, allow open access (development only)
+  if (!ACCESS_TOKEN && !(await getMembersStore()).clients.length) {
+    return next();
+  }
+
+  // Record failed attempt
+  if (given) {
+    const now = Date.now();
+    const r = rec && now - rec.first <= KEY_WINDOW_MS ? rec : { count: 0, first: now, lockedUntil: 0 };
+    r.count += 1;
+    if (r.count >= KEY_MAX_FAILS) r.lockedUntil = now + KEY_LOCK_MS;
+    failedKeyAttempts.set(id, r);
+  }
+  return res.status(401).json({ error: 'Unauthorized — invalid or missing access code.' });
 });
 
-// Owner login uses the existing ACCESS_TOKEN. Client ID is an account label,
-// not a second secret; the access-token guard above validates the code.
-app.post('/api/auth/owner', express.json({ limit: '1kb' }), (req, res) => {
-  if (!ACCESS_TOKEN || req.body?.clientId !== 'owner') return res.status(401).json({ error: 'Invalid client ID or access code.' });
-  res.json({ ok: true, clientId: 'owner' });
+// Universal login endpoint: supports both master owner & individual clients
+app.post('/api/auth/login', express.json({ limit: '2kb' }), async (req, res) => {
+  const { clientId: rawId, accessCode: rawCode } = req.body || {};
+  const cId = String(rawId || '').trim();
+  const cCode = String(rawCode || '').trim();
+
+  if (cId.toLowerCase() === 'owner' && ACCESS_TOKEN && cCode === ACCESS_TOKEN) {
+    return res.json({ ok: true, isOwner: true, clientId: 'owner', name: 'Owner' });
+  }
+
+  const client = await authenticateClient(cId, cCode);
+  if (client) {
+    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name || client.clientId });
+  }
+
+  return res.status(401).json({ error: 'Invalid Client ID or Access Code.' });
 });
-app.get('/api/auth/owner', (_req, res) => res.json({ ok: Boolean(ACCESS_TOKEN), clientId: 'owner' }));
+
+// Backward-compatible with previous /api/auth/owner
+app.post('/api/auth/owner', express.json({ limit: '2kb' }), async (req, res) => {
+  const givenToken = String(req.headers['x-access-token'] || req.query.token || '').trim();
+  const rawId = String(req.body?.clientId || '').trim();
+
+  if (ACCESS_TOKEN && rawId.toLowerCase() === 'owner' && givenToken === ACCESS_TOKEN) {
+    return res.json({ ok: true, isOwner: true, clientId: 'owner' });
+  }
+
+  const client = await authenticateClient(rawId, givenToken);
+  if (client) {
+    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name });
+  }
+
+  return res.status(401).json({ error: 'Invalid client ID or access code.' });
+});
+
+app.get('/api/auth/owner', async (req, res) => {
+  const given = String(req.headers['x-access-token'] || req.query.token || '').trim();
+  if (ACCESS_TOKEN && given === ACCESS_TOKEN) {
+    return res.json({ ok: true, isOwner: true, clientId: 'owner' });
+  }
+  const client = await findActiveClientByCode(given);
+  if (client) {
+    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name });
+  }
+  return res.json({ ok: false });
+});
+
+// Public: Redeem referral code to obtain unique Client ID & Access Code
+app.post('/api/auth/redeem-referral', express.json({ limit: '2kb' }), async (req, res) => {
+  try {
+    const { referralCode, name } = req.body || {};
+    const creds = await redeemReferralCode(referralCode, name);
+    res.json({ ok: true, ...creds });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Could not redeem referral code.' });
+  }
+});
+
+// Admin-only middleware: requires master ACCESS_TOKEN
+function requireOwner(req, res, next) {
+  const given = String(req.headers['x-access-token'] || req.query.token || '').trim();
+  if (!ACCESS_TOKEN || given !== ACCESS_TOKEN) {
+    return res.status(403).json({ error: 'Admin access required. Please sign in as owner.' });
+  }
+  next();
+}
+
+// Admin: Get all referrals and clients
+app.get('/api/admin/members', requireOwner, async (_req, res) => {
+  const store = await getMembersStore();
+  res.json({ ok: true, ...store });
+});
+
+// Admin: Create new referral code
+app.post('/api/admin/referrals', requireOwner, express.json({ limit: '2kb' }), async (req, res) => {
+  try {
+    const { code, maxUses, note } = req.body || {};
+    const ref = await createReferral({ code, maxUses, note });
+    res.json({ ok: true, referral: ref });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Toggle referral status
+app.post('/api/admin/referrals/:code/toggle', requireOwner, async (req, res) => {
+  try {
+    const ref = await toggleReferralStatus(req.params.code);
+    res.json({ ok: true, referral: ref });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Delete referral
+app.delete('/api/admin/referrals/:code', requireOwner, async (req, res) => {
+  try {
+    await deleteReferral(req.params.code);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Manually create a client
+app.post('/api/admin/clients', requireOwner, express.json({ limit: '2kb' }), async (req, res) => {
+  try {
+    const { name, customId, customCode } = req.body || {};
+    const client = await createClientManually({ name, customId, customCode });
+    res.json({ ok: true, client });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Toggle client status (revoke / activate)
+app.post('/api/admin/clients/:id/toggle', requireOwner, async (req, res) => {
+  try {
+    const client = await toggleClientStatus(req.params.id);
+    res.json({ ok: true, client });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Delete client
+app.delete('/api/admin/clients/:id', requireOwner, async (req, res) => {
+  try {
+    await deleteClient(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Routes

@@ -3432,3 +3432,287 @@ button {
 .insp-summary-item span{display:block;color:var(--text-muted);font-size:11px;margin-bottom:6px}
 .insp-summary-item strong{display:block;color:var(--text-main);font-size:16px;overflow-wrap:anywhere}
 @media(max-width:600px){.insp-native-card{padding:24px 16px}.insp-native-form{max-width:100%}.insp-summary{gap:6px}.insp-summary-item{padding:10px 8px}.insp-summary-item strong{font-size:12px}}
+
+/* ---------- Member Referral & Admin Passes Management ---------- */
+.member-switch-mode-btn,
+.member-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-cyan, #38bdf8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s ease;
+}
+.member-link-btn:hover {
+  opacity: 0.85;
+}
+.referral-prompt-row,
+.whatsapp-prompt-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+.member-request {
+  gap: 14px;
+}
+
+.member-success-card {
+  width: 100%;
+  max-width: 340px;
+  margin: 12px auto 16px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 14px;
+  padding: 14px 18px;
+  text-align: left;
+}
+.success-cred-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.success-cred-row .cred-label {
+  color: var(--text-dim, #94a3b8);
+  font-weight: 500;
+}
+.success-cred-row .cred-val {
+  color: #fff;
+  font-family: monospace;
+  font-weight: 600;
+}
+.success-cred-row .code-highlight {
+  color: #4ade80;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+.success-save-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+  text-align: center;
+}
+
+/* Admin Passes Topbar Button */
+.key-badge-btn.admin-btn {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #facc15;
+}
+.key-badge-btn.admin-btn:hover {
+  background: rgba(234, 179, 8, 0.22);
+}
+
+/* Admin Passes Modal */
+.admin-passes-modal {
+  max-width: 680px;
+  width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 22px 24px;
+}
+.admin-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-tab-bar {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 14px;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  padding-bottom: 8px;
+}
+.admin-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.admin-tab-btn.active {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+.admin-tab-content {
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+}
+.admin-create-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.admin-card-heading {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #facc15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.admin-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-input-group.full-width {
+  grid-column: 1 / -1;
+}
+.admin-input-group label {
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+  font-weight: 600;
+}
+.admin-input-group .studio-input {
+  height: 38px;
+  padding: 6px 12px;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+.admin-submit-btn {
+  margin-top: 12px;
+  height: 38px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.admin-section-sub {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-items-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+.admin-item-row.disabled {
+  opacity: 0.55;
+}
+.admin-item-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-code-badge {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.admin-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+.admin-status-pill.active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.admin-status-pill.inactive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.admin-usage-count {
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+}
+.admin-item-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+}
+.admin-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.admin-action-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  min-height: 28px;
+  border-radius: 6px;
+}
+.admin-action-btn.danger {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.admin-creds-preview {
+  margin-top: 4px;
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+.admin-creds-preview code {
+  color: #4ade80;
+  font-family: monospace;
+}
+.admin-client-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+}
+.admin-ref-tag {
+  font-size: 11px;
+  color: #c084fc;
+}
+.admin-empty-state {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted, #64748b);
+  font-size: 13px;
+}
+.admin-error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}

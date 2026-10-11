@@ -484,9 +484,15 @@ export default function App() {
                       </div>
                       <div className="member-request">
                         <span>Don’t have an access code?</span>
-                        <button type="button" className="btn-secondary" onClick={() => setDemoNotice('contact')}>Request access code →</button>
+                        <a
+                          href="https://wa.me/9779813952103?text=Hi%2C%20I%20would%20like%20to%20request%20an%20access%20code%20for%20Obito%20Studio."
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-secondary"
+                        >
+                          Request access code →
+                        </a>
                       </div>
-                      {demoNotice === 'contact' && <p className="member-preview-note" role="status">WhatsApp contact will be linked when you provide your business number.</p>}
                       {loginError && <p className="member-login-error" role="alert">{loginError}</p>}
                     </form>
                   </>}

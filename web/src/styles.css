@@ -3374,7 +3374,7 @@ button {
   .member-inline-actions .btn-secondary{margin-inline:auto}
 }
 .member-request{flex-direction:column;gap:10px;margin-top:22px}
-.member-request .btn-secondary{min-height:40px;border-radius:999px;padding-inline:18px;color:var(--text-main);font-size:12px}
+.member-request .btn-secondary{min-height:40px;border-radius:999px;padding-inline:18px;color:var(--text-main);font-size:12px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .member-request .btn-secondary:hover{text-decoration:none}
 /* Compact member sign-in on phones: keep the controls above the dock. */
 @media (max-width:600px){

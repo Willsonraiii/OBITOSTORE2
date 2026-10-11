@@ -3355,3 +3355,80 @@ button {
   font-weight: 600;
   color: #4ade80;
 }
+
+.member-inline-form{width:100%;max-width:370px;text-align:left}
+.member-inline-form label{display:block;color:var(--text-dim);font-size:13px;font-weight:600;margin:0 0 7px}
+.member-inline-form .studio-input{font-family:inherit;margin-bottom:16px}
+.member-inline-actions{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:5px}
+.member-inline-actions .btn-primary-hero{width:auto;min-width:170px}
+.member-preview-note{text-align:center;color:var(--text-muted);font-size:12px;margin-top:15px}
+.member-request{border-top:1px solid var(--border-subtle);margin-top:20px;padding-top:16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px;font-size:12px;color:var(--text-dim)}
+.member-request button{color:var(--accent-cyan);font-size:12px;font-weight:600}
+.member-request button:hover{text-decoration:underline}
+@media (max-width:600px){
+  .member-inline-form{text-align:center}
+  .member-inline-form label{text-align:center}
+  .member-inline-form .studio-input{text-align:center}
+  .member-inline-actions{flex-direction:column;align-items:center;width:100%}
+  .member-inline-actions .btn-primary-hero{width:100%;max-width:220px;margin-inline:auto}
+  .member-inline-actions .btn-secondary{margin-inline:auto}
+}
+.member-request{flex-direction:column;gap:10px;margin-top:22px}
+.member-request .btn-secondary{min-height:40px;border-radius:999px;padding-inline:18px;color:var(--text-main);font-size:12px}
+.member-request .btn-secondary:hover{text-decoration:none}
+/* Compact member sign-in on phones: keep the controls above the dock. */
+@media (max-width:600px){
+  .optimizer-view.member-signin-view{padding-top:0;min-height:auto;flex:initial}
+  .member-signin-view .hero-banner{display:none}
+  .member-signin-view .studio-optimizer{flex:initial}
+  .member-signin-view .clean-dropzone{padding:18px 16px 20px;gap:0}
+  .member-signin-view .bot-stage{transform:scale(.78);transform-origin:center;margin:-8px auto 0}
+  .member-signin-view .dropzone-text{margin-bottom:13px}
+  .member-inline-form{max-width:285px;margin-inline:auto}
+  .member-inline-form label{margin-bottom:6px}
+  .member-inline-form .studio-input{display:block;width:100%;height:42px;margin:0 auto 11px;padding:8px 14px;border-radius:999px;background:rgba(20,24,36,.7);border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.12);font-size:14px}
+  .member-inline-actions{gap:7px;margin-top:5px}
+  .member-inline-actions .btn-primary-hero{height:42px}
+  .member-inline-actions .btn-secondary{padding:7px 15px;font-size:12px}
+  .member-request{margin-top:13px;padding-top:12px;gap:7px}
+  .member-request .btn-secondary{min-height:35px}
+  .member-preview-note{margin-top:9px;font-size:11px}
+}
+/* Center the compact sign-in in the usable phone viewport, above the dock. */
+@media (max-width:600px){
+  .workspace-view.optimizer-view.member-signin-view{
+    flex:1;
+    min-height:calc(100dvh - 56px - 108px - env(safe-area-inset-bottom, 0px));
+    justify-content:center;
+    padding-top:0;
+  }
+  .member-signin-view .studio-optimizer{flex:initial;width:100%}
+}
+.member-orb{width:64px;height:64px;margin:0 auto 14px;display:grid;place-items:center}
+@media(max-width:600px){.member-signin-view .member-orb{margin-bottom:10px}}
+.member-login-error{text-align:center;color:#fda4af;font-size:12px;margin-top:10px}
+/* Signed-out mobile homepage: balance hero + native optimizer card above dock. */
+@media(max-width:600px){
+  .workspace-view.optimizer-view.member-locked-view{
+    min-height:calc(100dvh - 56px - 106px - env(safe-area-inset-bottom, 0px));
+    justify-content:center;
+    padding-top:16px;
+    padding-bottom:24px;
+  }
+  .member-locked-view .hero-banner{margin-bottom:30px}
+  .member-locked-view .studio-optimizer{flex:initial;width:100%}
+  .member-locked-view .clean-dropzone{max-width:640px;margin-inline:auto}
+}
+/* Inspector uses the optimizer's native dropzone, avatar, inputs and CTA. */
+.insp-native-card{max-width:720px;margin-inline:auto;gap:12px}
+.insp-native-form{width:100%;max-width:540px;display:flex;flex-direction:column;align-items:center}
+.insp-native-form label{align-self:flex-start;color:var(--text-dim);font-size:12px;font-weight:600;margin-bottom:8px}
+.insp-native-form .studio-input{width:100%;font-family:inherit;margin-bottom:18px}
+.insp-native-form .btn-primary-hero{flex:none}
+.insp-native-card .iu-chip{margin-top:5px}
+.insp-native-card .insp-analyzing{width:100%;max-width:540px}
+.insp-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.insp-summary-item{border:1px solid var(--border-medium);border-radius:var(--radius-md);padding:14px 16px;background:var(--bg-card);min-width:0}
+.insp-summary-item span{display:block;color:var(--text-muted);font-size:11px;margin-bottom:6px}
+.insp-summary-item strong{display:block;color:var(--text-main);font-size:16px;overflow-wrap:anywhere}
+@media(max-width:600px){.insp-native-card{padding:24px 16px}.insp-native-form{max-width:100%}.insp-summary{gap:6px}.insp-summary-item{padding:10px 8px}.insp-summary-item strong{font-size:12px}}

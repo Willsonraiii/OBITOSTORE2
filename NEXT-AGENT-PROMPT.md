@@ -1,5 +1,7 @@
 # Continuation Prompt — Vague / RTXFury-Style Online Optimizer (FINAL MIGRATION, 2026-09-29)
 
+> **CURRENT HANDOFF (2026-10-11):** Read `MIGRATION.md` CURRENT STATUS and `COMMANDS.md` before using older notes below. Current branch `online-rtx-service`; last confirmed push `0f39441`. Owner login patch was applied and staged on Windows but not yet confirmed pushed; native Inspector UI patch was prepared but not confirmed applied. Historical claims below (deployment paused, preset RAM fixed, downloads deleted immediately) may be wrong. Never put access-token values in docs.
+
 ## LATEST RESULT — WINDOWS 4K60 REAL VIDEO VALIDATED IN TIKTOK STUDIO (2026-09-30)
 
 USER-CONFIRMED: the third real video (first 4K60) worked in TikTok Studio and HDR is delivered (the project's main target).

@@ -1,8 +1,22 @@
 # OBITO STUDIO — The Project Book
 
-Last updated: **2026-10-09**. **Read this file first. Then read COMMANDS.md.** That is all you need to run, maintain, and expand the project without needing AI agents.
+Last updated: **2026-10-11**. **Read this file first. Then read COMMANDS.md.** That is all you need to run, maintain, and expand the project without needing AI agents.
 
 Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-service`.
+
+---
+
+## CURRENT STATUS — 2026-10-11 (read before historical sections)
+
+- Production branch: `online-rtx-service`. Last confirmed pushed commit from user: `0f39441` (FFmpeg decoder/filter threads limited). Live site: `https://obitostudio.willsonrai.com.np`, Suga free tier (0.1 CPU, 256 MiB, one replica). Do not claim a later commit has deployed without user confirmation.
+- User is working from **Windows PowerShell** at `$HOME\Desktop\vague-transcode-4k-test`. `COMMANDS.md` has both Linux and Windows paths; do not assume Linux. In 2026-10-11 session, Windows fetched/pulled to `0f39441`, applied `obito-owner-login.patch`, ran `npm --prefix web ci` and `npm --prefix web run build`, and staged source + `public/`. They have **not yet confirmed a commit or push**. `git diff --cached --check` may report whitespace in generated JS shader strings; do not edit those strings just to silence warnings. On Windows, Vite may produce CRLF in `public/index.html`; normalize to LF if Git flags it.
+- Owner login patch: `Client ID = owner`; access code = existing `ACCESS_TOKEN` on server (NEVER put its literal value in docs). Server routes `/api/auth/owner` validate the token and owner ID; browser reuses existing localStorage key persistence. This is **owner-only shared-secret access**, not real client accounts, expiry, admin portal, secure server-side sessions, or billing. Owner login gates Optimizer in the UI; server guards jobs and library. Inspector endpoints are made public; Specs and FAQ remain public. The owner code is not shipped in the frontend bundle.
+- Inspector follow-up: User explicitly **rejected** `obito-inspector-link-fallback.patch`; do not apply it. They want improved native UI, not a fallback-first redesign. `obito-inspector-ui.patch` changes frontend only: native optimizer dropzone/avatar/button for TikTok link and file panels, clear FPS/resolution/codec summary. The patch has been tested to apply after owner patch; user has NOT yet confirmed applying it. Link probing is unchanged: TikTok oEmbed may yield username while stream download is blocked. Do not invent codec/FPS/HDR from a username. Official metadata alone does not guarantee bitstream details.
+- The earlier `rtx-job-expiry-fix.patch` was pushed as `ea88d8d`: completed jobs expire 1h after finishing, queued/processing jobs are retained. Screen-awake patch pushed as `7aba2f0`; it applies only while webpage visible and cannot control Safari's separate download manager. Suga logs show repeated service restarts ~30-55 seconds after color-preset jobs start; original lossless runs complete. Memory graph peaked near 256 MiB; this is strong evidence of memory pressure, but no explicit OOM exit reason was supplied. FFmpeg threading change `0f39441` has not been confirmed to solve presets.
+- Real server data: jobs stored in an in-memory Map; startup purges jobs/uploads. No persistent volume/account DB was set up. `/health` reports free disk but not total capacity or deployment commit. Current download route retains files for TTL; it does not delete immediately upon download. Do not tell user otherwise.
+- Product intent: eventual manually provisioned time-limited client login; owner login above is only a first step. Do not present UI-only screens as authentication. Request-access WhatsApp button has no destination until user provides business number. Never invent or publish a number.
+- Security priority: a literal access token appeared in historical project documentation. Removing it now does NOT remove it from public Git history. Rotate the live secret and any reuse elsewhere; then update the Suga environment and sign in with the new code. Never paste the secret into agent prompts or commit it again. The current localStorage/shared-key approach is a transitional compatibility layer, not customer-grade auth.
+- Documentation below contains historical and sometimes contradictory claims (especially RAM, video success, deployment and download deletion). This CURRENT STATUS section and the actual code take precedence. Keep future updates factual and mark untested hypotheses.
 
 ---
 
@@ -27,7 +41,7 @@ A studio web application that prepares high-framerate (60fps/120fps), HDR (HLG/P
 | **Tailscale Funnel** | `https://willson-inspiron-15-3552.tail5e494c.ts.net` | 3005 | Encrypted HTTPS remote access from phone |
 | **Part-3 Test Clone** | `http://192.168.31.181:3006` / `:8443` | 3006 | Sandbox clone for experimental test runs |
 
-Access token on all local servers: `Willson@007` (or whatever `ACCESS_TOKEN` is set to in environment).
+Access tokens: configured in environment variables; never record real values in docs, chat, or code. If a token was ever committed to this public repo, rotate it.
 
 ---
 

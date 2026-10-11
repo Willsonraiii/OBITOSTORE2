@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { BotStage } from './Optimizer.jsx';
 import {
   CheckIcon, CloseIcon, InspectIcon, UploadIcon, FilmIcon,
   SearchIcon, SparkIcon, AlertTriangleIcon, LightningIcon
@@ -344,78 +345,38 @@ export default function Inspector({ apiKey }) {
       </div>
 
       {tab === 'link' ? (
-        <>
-          <label className="insp-user">
-            <span className="iu-lbl">Creator</span>
-            <input
-              value={user}
-              placeholder="Auto-detected or enter @username"
-              onChange={(e) => {
-                const t = e.target.value;
-                setUser(extractUser(t) || t.replace(/\s/g, '').slice(0, 40));
-              }}
-            />
-            {user && <span className="iu-chip">{user}</span>}
-          </label>
-
-          <div className="insp-link">
-            <input
-              value={link}
-              placeholder="https://www.tiktok.com/@creator/video/123456789…"
-              onChange={(e) => setLink(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !busy) runLink(); }}
-              inputMode="url"
-              autoComplete="off"
-            />
-            <button type="button" className="btn-insp-run" disabled={busy} onClick={runLink}>
-              <InspectIcon width={16} height={16} />
-              <span>{busy ? 'Inspecting…' : 'Inspect Link'}</span>
-            </button>
+        <div className="clean-dropzone insp-native-card">
+          <BotStage phase={phase === 'linking' ? 'process' : phase === 'error' ? 'error' : 'idle'} busy={busy} />
+          <div className="dropzone-text">
+            <h2 className="dropzone-title">Inspect a TikTok video</h2>
+            <p className="dropzone-sub">Paste a public video link to see what TikTok makes available.</p>
           </div>
-        </>
+          <form className="insp-native-form" onSubmit={(e) => { e.preventDefault(); if (!busy) runLink(); }}>
+            <label htmlFor="insp-url">TikTok video link</label>
+            <input id="insp-url" className="studio-input" value={link} placeholder="https://www.tiktok.com/@creator/video/…" onChange={(e) => setLink(e.target.value)} inputMode="url" autoComplete="off" />
+            <button type="submit" className="btn-primary-hero choose-file-label" disabled={busy}><SearchIcon width={17} height={17} /><span>{busy ? 'Inspecting…' : 'Inspect link'}</span></button>
+          </form>
+          {user && <span className="iu-chip">Creator · {user}</span>}
+          {phase === 'linking' && <p className="dropzone-sub" role="status">{status}</p>}
+        </div>
       ) : (
-        <div
-          className={'insp-drop' + (drag ? ' hot' : '')}
+        <div className={'clean-dropzone insp-native-card' + (drag ? ' drag-over' : '')}
           onDragOver={(e) => { e.preventDefault(); if (!busy) setDrag(true); }}
           onDragLeave={() => setDrag(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDrag(false);
-            if (!busy) runFile(e.dataTransfer.files?.[0]);
-          }}
-        >
+          onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) runFile(e.dataTransfer.files?.[0]); }}>
+          <BotStage phase={phase === 'sending' ? 'upload' : 'idle'} busy={busy} />
+          <div className="dropzone-text">
+            <h2 className="dropzone-title">Inspect a video file</h2>
+            <p className="dropzone-sub">Check the FPS, resolution, codec and HDR details of a saved video.</p>
+          </div>
           {phase === 'sending' ? (
             <div className="insp-analyzing">
-              <div className="insp-analyzing-head">
-                <span className="terminal-indicator pulsing" />
-                <b>Analyzing {fileName}…</b>
-              </div>
-              <div className="progress-track-bar">
-                <div className="progress-fill-bar" style={{ width: `${Math.max(4, pct)}%` }} />
-              </div>
-              <span className="insp-sub">Video container &amp; bitstreams probed in-memory.</span>
+              <div className="insp-analyzing-head"><span className="terminal-indicator pulsing" /><b>Analyzing {fileName}…</b></div>
+              <div className="progress-track-bar"><div className="progress-fill-bar" style={{ width: `${Math.max(4, pct)}%` }} /></div>
             </div>
           ) : (
-            <>
-              <div className="insp-drop-icon">
-                <InspectIcon width={28} height={28} />
-              </div>
-              <b className="insp-drop-title">Drop a video file to inspect</b>
-              <span className="insp-sub">Audit master camera clips or videos downloaded from TikTok</span>
-              <button type="button" className="btn-insp-choose" onClick={() => input.current?.click()}>
-                <UploadIcon width={16} height={16} />
-                <span>Choose video file</span>
-              </button>
-            </>
+            <button type="button" className="btn-primary-hero choose-file-label" onClick={() => input.current?.click()}><UploadIcon width={18} height={18} /><span>Choose video file</span></button>
           )}
-        </div>
-      )}
-
-      {phase === 'linking' && (
-        <div className="insp-drop">
-          <span className="insp-ico pulse"><InspectIcon width={28} height={28} /></span>
-          <b>{status}</b>
-          <span className="insp-sub">Resolving username → video page → stream probe</span>
         </div>
       )}
 
@@ -439,6 +400,14 @@ export default function Inspector({ apiKey }) {
 
       {report && (
         <div className="insp-report">
+          <div className="insp-summary">
+            {['Resolution', 'Frame Rate', 'Video Codec'].map((key) => (
+              <div className="insp-summary-item" key={key}>
+                <span>{key}</span>
+                <strong>{report.tiles.find(([name]) => name === key)?.[1] || '—'}</strong>
+              </div>
+            ))}
+          </div>
           <div className={'insp-banner' + (report.dovi ? ' dv' : report.hdr !== 'SDR' ? ' hdr' : '')}>
             {report.dovi
               ? '✨ Dolby Vision Profile 8 Detected — Use FPS + Quality + HDR mode to prevent grey/washed out colors on TikTok.'

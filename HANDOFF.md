@@ -1,5 +1,7 @@
 # Vague Transcode — Migration / Handoff Notes
 
+> **CURRENT HANDOFF (2026-10-11):** Read `MIGRATION.md` CURRENT STATUS and `COMMANDS.md` before using older notes below. Current branch `online-rtx-service`; last confirmed push `0f39441`. Owner login patch was applied and staged on Windows but not yet confirmed pushed; native Inspector UI patch was prepared but not confirmed applied. Historical claims below (deployment paused, preset RAM fixed, downloads deleted immediately) may be wrong. Never put access-token values in docs.
+
 ## PWA + PRIVATE ACCESS PLAN (2026-09-30)
 
 Decision: host the validated online service on the user's own computer and reach it privately from the phone via Tailscale (free, no card), instead of a cloud host. Reason: every no-card free host is too small (512 MB) or now paid (Hugging Face Docker Spaces need PRO since mid-2026; Oracle needs a card). The computer must be on and awake.

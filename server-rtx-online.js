@@ -335,6 +335,8 @@ setInterval(() => {
   for (const [id, f] of failedKeyAttempts) if (now - f.first > KEY_WINDOW_MS && now > f.lockedUntil) failedKeyAttempts.delete(id);
 }, 60 * 1000).unref();
 app.use('/api', (req, res, next) => {
+  // Inspection is public; optimization, jobs and library remain protected.
+  if (req.path === '/inspect' || req.path === '/inspect-link') return next();
   if (!ACCESS_TOKEN) return next();
   const id = clientId(req);
   const rec = failedKeyAttempts.get(id);
@@ -356,6 +358,14 @@ app.use('/api', (req, res, next) => {
   if (rec) failedKeyAttempts.delete(id);
   next();
 });
+
+// Owner login uses the existing ACCESS_TOKEN. Client ID is an account label,
+// not a second secret; the access-token guard above validates the code.
+app.post('/api/auth/owner', express.json({ limit: '1kb' }), (req, res) => {
+  if (!ACCESS_TOKEN || req.body?.clientId !== 'owner') return res.status(401).json({ error: 'Invalid client ID or access code.' });
+  res.json({ ok: true, clientId: 'owner' });
+});
+app.get('/api/auth/owner', (_req, res) => res.json({ ok: Boolean(ACCESS_TOKEN), clientId: 'owner' }));
 
 // ---------------------------------------------------------------------------
 // Routes

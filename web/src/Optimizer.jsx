@@ -55,7 +55,7 @@ const hdrLabel = (t) => (!t || t === 'unknown' || t === 'sdr' ? 'SDR' : t === 's
 const fmtDur = (s) => (s ? Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0') : '—');
 
 /* ---------- Interactive Bot Avatar Stage (Libraries.dev bot-avatars) ---------- */
-function BotStage({ phase, busy }) {
+export function BotStage({ phase, busy }) {
   const isWorking = phase === 'upload' || phase === 'queued' || phase === 'process';
   const avatarType =
     phase === 'done' ? 'star' :

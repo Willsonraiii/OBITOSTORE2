@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Logo from './Logo.jsx';
-import Optimizer from './Optimizer.jsx';
+import Optimizer, { BotStage } from './Optimizer.jsx';
+import { ThinkingOrb } from 'thinking-orbs';
 import Inspector from './Inspector.jsx';
 import Library from './Library.jsx';
 import { ShaderAnimation } from '@/components/ui/shader-animation';
@@ -124,6 +125,21 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => lsGet('obitoKey') || '');
   const [busy, setBusy] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
+  // Owner sign-in uses the site's existing server access code.
+  const memberPreview = true;
+  const [ownerAuthenticated, setOwnerAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [loginError, setLoginError] = useState('');
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [demoClientId, setDemoClientId] = useState('');
+  const [demoCode, setDemoCode] = useState('');
+  const [focusedMemberField, setFocusedMemberField] = useState(null);
+  const memberOrbState = !demoClientId.trim() && !demoCode.trim()
+    ? 'breathing' // The package's calm idle state; it does not provide a "thinking" state.
+    : demoClientId.trim() && demoCode.trim()
+    ? 'solving' // Both fields completed; real credential validity is not checked in this UI preview.
+    : focusedMemberField === 'code' ? 'searching' : 'working';
+  const [demoNotice, setDemoNotice] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [now, setNow] = useState(() => new Date());
   const [heroMsgIndex, setHeroMsgIndex] = useState(0);
@@ -145,6 +161,37 @@ export default function App() {
     setApiKey(v);
     lsSet('obitoKey', v);
   }, []);
+
+  useEffect(() => {
+    if (!apiKey) { setOwnerAuthenticated(false); setAuthChecking(false); return; }
+    const controller = new AbortController();
+    setAuthChecking(true);
+    fetch('/api/auth/owner', { headers: { 'x-access-token': apiKey }, signal: controller.signal })
+      .then((r) => r.json().then((data) => r.ok && data.ok === true))
+      .then((ok) => { if (!controller.signal.aborted) setOwnerAuthenticated(ok); })
+      .catch(() => { if (!controller.signal.aborted) setOwnerAuthenticated(false); })
+      .finally(() => { if (!controller.signal.aborted) setAuthChecking(false); });
+    return () => controller.abort();
+  }, [apiKey]);
+
+  const signInOwner = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    if (demoClientId.trim().toLowerCase() !== 'owner') { setLoginError('Use the client ID provided to you.'); return; }
+    try {
+      const response = await fetch('/api/auth/owner', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-access-token': demoCode },
+        body: JSON.stringify({ clientId: 'owner' }),
+      });
+      if (!response.ok) { setLoginError('Client ID or access code is incorrect.'); return; }
+      onKeyChange(demoCode);
+      setOwnerAuthenticated(true);
+      setDemoCode('');
+      setDemoClientId('');
+      setShowMemberModal(false);
+    } catch { setLoginError('Could not reach the server. Try again.'); }
+  };
 
   // 3D perspective mouse tracking over topbar
   const onTopbarMove = (e) => {
@@ -320,7 +367,8 @@ export default function App() {
 
         {/* Right Segment: Access Key & Clock */}
         <div className="topbar-right">
-          <button
+          {memberPreview && ownerAuthenticated && <button type="button" className="key-badge-btn configured" onClick={() => { onKeyChange(''); setOwnerAuthenticated(false); setActiveTab('optimizer'); }}>Sign out</button>}
+          {!memberPreview && <button
             type="button"
             className={`key-badge-btn ${apiKey ? 'configured' : ''}`}
             onClick={() => setShowKeyModal((v) => !v)}
@@ -329,7 +377,7 @@ export default function App() {
           >
             <PremiumKeyIcon width={15} height={15} />
             <span className="key-btn-text">{apiKey ? 'Key Set' : 'Key'}</span>
-          </button>
+          </button>}
 
           <div className="studio-clock" aria-label="Local Time">
             <span className="clock-day">{dayStr}</span>
@@ -369,7 +417,7 @@ export default function App() {
       {/* ---------- Main Workspace Viewport ---------- */}
       <main className="studio-workspace">
         {activeTab === 'optimizer' && (
-          <section className={`workspace-view active optimizer-view ${busy ? 'is-busy' : ''}`} key="optimizer">
+          <section className={`workspace-view active optimizer-view ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? (showMemberModal ? 'member-signin-view' : 'member-locked-view') : ''}`} key="optimizer">
             <div className="hero-banner text-center mb-6">
               <h1
                 className="hero-headline text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 cursor-pointer select-none"
@@ -399,7 +447,50 @@ export default function App() {
               </div>
             </div>
 
-            <Optimizer apiKey={apiKey} onKeyChange={onKeyChange} onBusy={setBusy} />
+            {memberPreview && authChecking ? (
+              <div className="dropzone-sub">Checking access…</div>
+            ) : memberPreview && !ownerAuthenticated ? (
+              <div className="studio-optimizer w-full max-w-3xl mx-auto">
+                <div className="clean-dropzone phase-idle">
+                  {!showMemberModal ? <>
+                    <BotStage phase="idle" busy={false} />
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">Choose a video to optimize</h2>
+                      <p className="dropzone-sub">Sign in with an active membership to upload a video.</p>
+                    </div>
+                    <div className="idle-actions">
+                      <div className="choose-btn-wrap my-3">
+                        <button type="button" className="btn-primary-hero choose-file-label" onClick={() => setShowMemberModal(true)}><PremiumKeyIcon width={18} height={18} /><span>Sign in to optimize</span></button>
+                      </div>
+                    </div>
+                  </> : <>
+                    <div className="member-orb" aria-label={`Sign-in progress: ${memberOrbState}`}>
+                      <ThinkingOrb state={memberOrbState} size={64} theme="dark" />
+                    </div>
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">Sign in to optimize</h2>
+                      <p className="dropzone-sub">Enter the details you received for your membership.</p>
+                    </div>
+                    <form className="member-inline-form" onSubmit={signInOwner}>
+                      <label htmlFor="member-id">Client ID</label>
+                      <input id="member-id" className="studio-input" placeholder="Your client ID" autoComplete="off" value={demoClientId} onFocus={() => setFocusedMemberField('id')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoClientId(e.target.value); setDemoNotice(false); }} required />
+                      <label htmlFor="member-code">Access code</label>
+                      <input id="member-code" className="studio-input" placeholder="Your access code" type="password" autoComplete="off" value={demoCode} onFocus={() => setFocusedMemberField('code')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoCode(e.target.value); setDemoNotice(false); }} required />
+                      <div className="member-inline-actions">
+                        <button type="submit" className="btn-primary-hero choose-file-label">Continue</button>
+                        <button type="button" className="btn-secondary" onClick={() => { setShowMemberModal(false); setDemoNotice(false); setDemoCode(''); }}>Back</button>
+                      </div>
+                      <div className="member-request">
+                        <span>Don’t have an access code?</span>
+                        <button type="button" className="btn-secondary" onClick={() => setDemoNotice('contact')}>Request access code →</button>
+                      </div>
+                      {demoNotice === 'contact' && <p className="member-preview-note" role="status">WhatsApp contact will be linked when you provide your business number.</p>}
+                      {loginError && <p className="member-login-error" role="alert">{loginError}</p>}
+                    </form>
+                  </>}
+                </div>
+              </div>
+            ) : <Optimizer apiKey={apiKey} onKeyChange={onKeyChange} onBusy={setBusy} />}
           </section>
         )}
 

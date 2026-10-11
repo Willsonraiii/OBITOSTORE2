@@ -1,6 +1,8 @@
 # COMMANDS — every terminal thing, both machines
 
 Windows = PowerShell 5 (no `&&` — run lines one by one). Linux = bash.
+> Current status is in MIGRATION.md (2026-10-11). Several legacy sections below describe older deployment and upload parameters; verify against actual code before copying commands. Never commit a real ACCESS_TOKEN.
+
 Repo folders: Windows `%USERPROFILE%\Desktop\vague-transcode-4k-test` · Linux `~/Desktop/vague-transcode`.
 Output folder on both: `out/` inside the repo. Source videos are never touched.
 
@@ -26,7 +28,7 @@ Keep the source HDR/DV signalling instead (unvalidated): add `-Mode standard`.
 ```powershell
 cd "$HOME\Desktop\vague-transcode-4k-test"
 $env:ACCESS_TOKEN = "your-key"
-npm run start:online
+npm start
 ```
 
 Open `http://localhost:3005`, type the same key. Keep this window open. Stop with Ctrl+C.
@@ -123,7 +125,7 @@ node -v; ffmpeg -version | head -1
 
 ```bash
 cd ~/Desktop/vague-transcode
-ACCESS_TOKEN="your-key" npm run start:online
+ACCESS_TOKEN="your-key" npm start
 ```
 
 Open `http://localhost:3005` on the laptop, or from the phone: `http://100.91.23.41:3005`.
@@ -301,7 +303,7 @@ Wants=network-online.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/Desktop/vague-transcode
-Environment=ACCESS_TOKEN=obito
+Environment=ACCESS_TOKEN=REPLACE_WITH_LONG_RANDOM_SECRET
 Environment=PORT=3005
 Environment=PATH=$PATH
 ExecStart=$NODE server-rtx-online.js

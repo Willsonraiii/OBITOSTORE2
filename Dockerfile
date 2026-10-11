@@ -19,6 +19,7 @@ RUN npm ci --omit=dev || npm install --omit=dev
 COPY lib ./lib
 COPY tools ./tools
 COPY public ./public
+COPY members-store.js ./
 COPY server-rtx-online.js ./
 
 # Default port 7860 for Hugging Face Spaces (dynamically overridden by $PORT on other platforms)

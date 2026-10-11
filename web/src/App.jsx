@@ -9,7 +9,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 import {
   ChevronIcon, FpsIcon, HdrIcon, HelpIcon,
   InspectIcon, LayersIcon, LightningIcon, ShieldIcon, SparkIcon, FilmIcon,
-  PremiumKeyIcon
+  PremiumKeyIcon, UserIcon
 } from './icons.jsx';
 import { ShutterText } from '@/components/ui/hero-shutter-text.jsx';
 import { AnimatedText } from '@/components/ui/animated-text.jsx';
@@ -130,6 +130,7 @@ export default function App() {
   const memberPreview = true;
   const [ownerAuthenticated, setOwnerAuthenticated] = useState(false);
   const [isMasterOwner, setIsMasterOwner] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState(() => lsGet('obitoUserName') || '');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [loginError, setLoginError] = useState('');
@@ -165,9 +166,16 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
-  const onKeyChange = useCallback((v) => {
+  const onKeyChange = useCallback((v, userName = '') => {
     setApiKey(v);
     lsSet('obitoKey', v);
+    if (userName) {
+      setCurrentUserName(userName);
+      lsSet('obitoUserName', userName);
+    } else if (!v) {
+      setCurrentUserName('');
+      lsSet('obitoUserName', '');
+    }
   }, []);
 
   useEffect(() => {
@@ -181,6 +189,11 @@ export default function App() {
           const ok = data && data.ok === true;
           setOwnerAuthenticated(ok);
           setIsMasterOwner(Boolean(data?.isOwner));
+          if (data?.name || data?.clientId) {
+            const displayName = data.name || data.clientId;
+            setCurrentUserName(displayName);
+            lsSet('obitoUserName', displayName);
+          }
         }
       })
       .catch(() => { if (!controller.signal.aborted) { setOwnerAuthenticated(false); setIsMasterOwner(false); } })
@@ -203,7 +216,8 @@ export default function App() {
         setLoginError(data.error || 'Client ID or access code is incorrect.');
         return;
       }
-      onKeyChange(demoCode.trim());
+      const displayName = data.name || data.clientId || demoClientId.trim();
+      onKeyChange(demoCode.trim(), displayName);
       setOwnerAuthenticated(true);
       setIsMasterOwner(Boolean(data.isOwner));
       setDemoCode('');
@@ -415,6 +429,12 @@ export default function App() {
         <div className="topbar-right">
           {memberPreview && ownerAuthenticated && (
             <>
+              {currentUserName && (
+                <div className="topbar-user-badge" title={`Signed in as ${currentUserName}`}>
+                  <UserIcon width={13} height={13} />
+                  <span className="user-name-text">{currentUserName}</span>
+                </div>
+              )}
               {isMasterOwner && (
                 <button
                   type="button"
@@ -596,7 +616,8 @@ export default function App() {
                         type="button"
                         className="btn-primary-hero choose-file-label"
                         onClick={() => {
-                          onKeyChange(referralRedeemedCreds.accessCode);
+                          const displayName = referralRedeemedCreds.name || referralRedeemedCreds.clientId;
+                          onKeyChange(referralRedeemedCreds.accessCode, displayName);
                           setOwnerAuthenticated(true);
                           setShowMemberModal(false);
                           setMemberModalMode('login');

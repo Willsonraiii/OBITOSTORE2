@@ -1,6 +1,5 @@
 import React, { Component, useCallback, useEffect, useRef, useState } from 'react';
 import { BotAvatar } from 'bot-avatars';
-import { BorderBeam } from 'border-beam';
 import { MetalFx } from 'metal-fx';
 import {
   CheckIcon, CloseIcon, DownloadIcon, FpsIcon, HdrIcon, KeyIcon,
@@ -283,64 +282,55 @@ function ModeSelect({ value, onChange }) {
 
   return (
     <div className="mode-toggle-wrap">
-      <BorderBeam
-        size="md"
-        colorVariant="colorful"
-        strength={0.7}
-        theme="dark"
-        borderRadius={999}
-        className="w-full relative rounded-full"
+      <div
+        className="mode-toggle-group"
+        ref={modeGroupRef}
+        role="radiogroup"
+        aria-label="Optimization mode"
+        onTouchStart={onModeTouchStart}
+        onTouchMove={onModeTouchMove}
+        onTouchEnd={onModeTouchEnd}
       >
-        <div
-          className="mode-toggle-group"
-          ref={modeGroupRef}
-          role="radiogroup"
-          aria-label="Optimization mode"
-          onTouchStart={onModeTouchStart}
-          onTouchMove={onModeTouchMove}
-          onTouchEnd={onModeTouchEnd}
-        >
-          {/* Animated Clear Glass Sliding Pill */}
-          {modePill.ready && (
-            <div
-              className="mode-toggle-pill-slider"
-              style={{
-                transform: `translateX(${modePill.left}px)`,
-                width: `${modePill.width}px`
-              }}
-            />
-          )}
+        {/* Animated Clear Glass Sliding Pill */}
+        {modePill.ready && (
+          <div
+            className="mode-toggle-pill-slider"
+            style={{
+              transform: `translateX(${modePill.left}px)`,
+              width: `${modePill.width}px`
+            }}
+          />
+        )}
 
-          {MODES.map(({ id, label, shortLabel, badge, Icon }) => {
-            const active = value === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                data-mode-id={id}
-                role="radio"
-                aria-checked={active}
-                className={`mode-toggle-btn ${active ? 'active' : ''} mode-${id}`}
-                onClick={(e) => {
-                  if (suppressClickRef.current) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                  }
-                  switchModeWithHaptic(id);
-                }}
-              >
-                <div className="mode-btn-content">
-                  <Icon width={15} height={15} className="mode-btn-icon" />
-                  <span className="mode-btn-label mode-btn-label-full">{label}</span>
-                  <span className="mode-btn-label mode-btn-label-short">{shortLabel}</span>
-                </div>
-                <span className="mode-btn-badge">{badge}</span>
-              </button>
-            );
-          })}
-        </div>
-      </BorderBeam>
+        {MODES.map(({ id, label, shortLabel, badge, Icon }) => {
+          const active = value === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              data-mode-id={id}
+              role="radio"
+              aria-checked={active}
+              className={`mode-toggle-btn ${active ? 'active' : ''} mode-${id}`}
+              onClick={(e) => {
+                if (suppressClickRef.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                switchModeWithHaptic(id);
+              }}
+            >
+              <div className="mode-btn-content">
+                <Icon width={15} height={15} className="mode-btn-icon" />
+                <span className="mode-btn-label mode-btn-label-full">{label}</span>
+                <span className="mode-btn-label mode-btn-label-short">{shortLabel}</span>
+              </div>
+              <span className="mode-btn-badge">{badge}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -963,7 +953,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
             <ModeSelect value={mode} onChange={setMode} />
 
-            <div className="choose-btn-wrap my-3">
+            <div className="choose-btn-wrap">
               <label htmlFor="video-file-input" className="btn-primary-hero choose-file-label">
                 <UploadIcon width={18} height={18} />
                 <span>Choose Video File</span>

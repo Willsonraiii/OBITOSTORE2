@@ -1,4 +1,4 @@
-import { SparkIcon, FilmIcon, HdrIcon, FpsIcon, CheckIcon, AlertTriangleIcon, UploadIcon, ShareIcon } from './icons.jsx';
+import { FilmIcon, HdrIcon, FpsIcon, CheckIcon, AlertTriangleIcon, UploadIcon, ShareIcon } from './icons.jsx';
 
 export default function Guide({ onSwitchToOptimizer }) {
   const steps = [
@@ -53,14 +53,9 @@ export default function Guide({ onSwitchToOptimizer }) {
   return (
     <div className="guide-view">
       <div className="guide-hero">
-        <div className="guide-badge-pill">
-          <SparkIcon width={14} height={14} />
-          <span>CREATOR MASTERCLASS</span>
-        </div>
         <h1 className="guide-title">
-          How to Upload <span className="guide-title-accent">Lossless Videos</span> to TikTok
+          How to Upload Lossless Videos to TikTok
         </h1>
-        <div className="guide-hero-divider" />
         <p className="guide-subtitle">
           Follow this proven step-by-step master workflow to stop TikTok compression, preserve 60fps/120fps fluidity, and deliver ultra-sharp playback.
         </p>

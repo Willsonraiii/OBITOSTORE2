@@ -30,19 +30,21 @@ function parseProbe(probe, linkUser, page) {
   const transfer = v?.color_transfer || '';
   const hdr = transfer === 'arib-std-b67' ? 'HLG (iPhone HDR)' : transfer === 'smpte2084' ? 'PQ (HDR10)' : 'SDR';
   const dovi = (v?.side_data_list || []).find((s) => /DOVI|Dolby/i.test(s.side_data_type || ''));
-  const size = Number(f.size || 0);
+  const size = (page?.size && page.size > Number(f.size || 0)) ? page.size : Number(f.size || 0);
+  const dur = f.duration || v?.duration || page?.duration;
+  const bitRate = f.bit_rate || page?.bitrate;
 
   const tiles = [
     ['Creator', user || '—'],
-    ['Resolution', v ? `${v.width} × ${v.height}` : '—'],
+    ['Resolution', v ? `${v.width} × ${v.height}` : (page?.width && page?.height ? `${page.width} × ${page.height}` : '—')],
     ['Frame Rate', v ? (fps % 1 ? fps.toFixed(2) : fps) + ' fps' : '—'],
     ['Video Codec', v ? `${v.codec_name}${v.profile ? ' · ' + v.profile : ''}` : '—'],
     ['Dynamic Range', hdr],
     ['Dolby Vision', dovi ? `Yes · Profile ${dvi(dovi)}` : 'None'],
     ['Audio Tracks', audio.length ? `${audio.length} track${audio.length > 1 ? 's' : ''} (${audio[0].codec_name})` : 'None'],
-    ['Duration', fmtDur(f.duration)],
-    ['File Size', fmtBytes(size)],
-    ['Bitrate', fmtRate(f.bit_rate)],
+    ['Duration', fmtDur(dur)],
+    ['File Size', size ? fmtBytes(size) : '—'],
+    ['Bitrate', fmtRate(bitRate)],
     ['Timescale', ts ? `${ts} (÷19200: ${19200 % ts === 0 ? '✓' : '✗'})` : '—'],
     ['Container', (f.format_name || '—').split(',')[0]]
   ];
@@ -58,13 +60,13 @@ function parseProbe(probe, linkUser, page) {
 
   return {
     user,
-    tiles,
+    tiles: tiles.filter(([_, val]) => val && val !== '—'),
     checks: [
       ['Audio Stream Intact', audio.length > 0],
       ['High Frame Rate (>30 fps)', fps > 30],
       ['Under 600 MB File Size', size > 0 && size <= MAX_BYTES],
       ['Timescale Compatible (÷19200)', ts > 0 && 19200 % ts === 0],
-      ['Supported Container (MP4/MOV)', /mp4|mov|quicktime|m4v/i.test(f.format_name || '')]
+      ['Supported Container (MP4/MOV)', /mp4|mov|quicktime|m4v/i.test(f.format_name || 'mp4')]
     ],
     hdr,
     dovi: !!dovi,
@@ -73,22 +75,20 @@ function parseProbe(probe, linkUser, page) {
 }
 
 function pageReport(page, user) {
+  const allTiles = [
+    ['Creator', user || '—'],
+    ['Resolution', page.width && page.height ? `${page.width} × ${page.height}` : '—'],
+    ['Duration', fmtDur(page.duration)],
+    ['Bitrate', fmtRate(page.bitrate)],
+    ['Container Ratio', page.ratio || '—'],
+    ['Plays', fmtCount(page.stats?.plays)],
+    ['Likes', fmtCount(page.stats?.likes)],
+    ['Comments', fmtCount(page.stats?.comments)],
+    ['Shares', fmtCount(page.stats?.shares)]
+  ];
   return {
     user,
-    tiles: [
-      ['Creator', user || '—'],
-      ['Resolution', page.width && page.height ? `${page.width} × ${page.height}` : '—'],
-      ['Frame Rate', '—'],
-      ['Video Codec', page.ratio || '—'],
-      ['Dynamic Range', '—'],
-      ['Dolby Vision', '—'],
-      ['Audio', '—'],
-      ['Duration', fmtDur(page.duration)],
-      ['File Size', '—'],
-      ['Bitrate', fmtRate(page.bitrate)],
-      ['Plays', fmtCount(page.stats?.plays)],
-      ['Likes', fmtCount(page.stats?.likes)]
-    ],
+    tiles: allTiles.filter(([_, v]) => v && v !== '—'),
     checks: [],
     hdr: 'SDR',
     dovi: false
@@ -405,21 +405,25 @@ export default function Inspector({ apiKey }) {
       {report && (
         <div className="insp-report">
           <div className="insp-summary">
-            {['Resolution', 'Frame Rate', 'Video Codec'].map((key) => (
-              <div className="insp-summary-item" key={key}>
-                <span>{key}</span>
-                <strong>{report.tiles.find(([name]) => name === key)?.[1] || '—'}</strong>
-              </div>
-            ))}
+            {['Resolution', 'Frame Rate', 'Video Codec', 'Timescale'].map((key) => {
+              const val = report.tiles.find(([name]) => name === key)?.[1];
+              if (!val || val === '—') return null;
+              return (
+                <div className="insp-summary-item" key={key}>
+                  <span>{key}</span>
+                  <strong>{val}</strong>
+                </div>
+              );
+            })}
           </div>
           <div className={'insp-banner' + (report.dovi ? ' dv' : report.hdr !== 'SDR' ? ' hdr' : '')}>
             {report.dovi
-              ? '✨ Dolby Vision Profile 8 Detected — Use FPS + Quality + HDR mode to prevent grey/washed out colors on TikTok.'
+              ? 'Dolby Vision Profile 8 Detected — Use FPS + Quality + HDR mode to prevent washed-out colors on TikTok.'
               : report.hdr !== 'SDR'
-              ? '✨ Native HDR Detected — Use FPS + Quality + HDR mode to retain dynamic range in TikTok Studio.'
+              ? 'Native HDR Detected — Use FPS + Quality + HDR mode to retain dynamic range in TikTok Studio.'
               : report.checks.length
-              ? '✨ SDR Source — FPS + Quality mode will preserve 60/120fps smoothness.'
-              : 'Link information retrieved.'}
+              ? 'SDR Source — FPS + Quality mode will preserve 60/120fps smoothness and 19200 timescale.'
+              : 'TikTok video information retrieved.'}
           </div>
 
           <div className="insp-grid">

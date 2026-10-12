@@ -963,19 +963,6 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
             <ModeSelect value={mode} onChange={setMode} />
 
-            <div className="h264-opt-wrap">
-              <label className="h264-opt-label">
-                <input
-                  type="checkbox"
-                  className="h264-opt-checkbox"
-                  checked={ensureH264}
-                  onChange={(e) => setEnsureH264(e.target.checked)}
-                />
-                <span className="h264-opt-badge">Optional</span>
-                <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
-              </label>
-            </div>
-
             <div className="choose-btn-wrap my-3">
               <label htmlFor="video-file-input" className="btn-primary-hero choose-file-label">
                 <UploadIcon width={18} height={18} />
@@ -1034,21 +1021,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
         {/* Pre-Upload Details (confirm phase only) */}
         {src && phase === 'confirm' && (
-          <>
-            <SpecGrid p={src} />
-            <div className="h264-opt-wrap my-3">
-              <label className="h264-opt-label">
-                <input
-                  type="checkbox"
-                  className="h264-opt-checkbox"
-                  checked={ensureH264}
-                  onChange={(e) => setEnsureH264(e.target.checked)}
-                />
-                <span className="h264-opt-badge">Optional</span>
-                <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
-              </label>
-            </div>
-          </>
+          <SpecGrid p={src} />
         )}
 
         {/* Output Specs when Done */}
@@ -1088,6 +1061,18 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                   <span>Start Optimize Video</span>
                 </button>
               </SafeMetalFx>
+              <div className="h264-opt-wrap">
+                <label className="h264-opt-label">
+                  <input
+                    type="checkbox"
+                    className="h264-opt-checkbox"
+                    checked={ensureH264}
+                    onChange={(e) => setEnsureH264(e.target.checked)}
+                  />
+                  <span className="h264-opt-badge">Optional</span>
+                  <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
+                </label>
+              </div>
               <button
                 type="button"
                 className="btn-secondary btn-choose-another"

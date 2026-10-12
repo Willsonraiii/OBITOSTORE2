@@ -6,10 +6,11 @@ import Inspector from './Inspector.jsx';
 import Library from './Library.jsx';
 import AdminPassesModal from './AdminPassesModal.jsx';
 import { ShaderAnimation } from '@/components/ui/shader-animation';
+import Guide from './Guide.jsx';
 import {
   ChevronIcon, FpsIcon, HdrIcon, HelpIcon,
   InspectIcon, LayersIcon, LightningIcon, ShieldIcon, SparkIcon, FilmIcon,
-  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon
+  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon, BookOpenIcon
 } from './icons.jsx';
 import { ShutterText } from '@/components/ui/hero-shutter-text.jsx';
 import { AnimatedText } from '@/components/ui/animated-text.jsx';
@@ -19,6 +20,7 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage
 
 const TABS = [
   { id: 'optimizer', label: 'Optimizer', Icon: LightningIcon },
+  { id: 'guide', label: 'Guide', Icon: BookOpenIcon },
   { id: 'inspect', label: 'Inspector', Icon: InspectIcon },
   { id: 'library', label: 'Library', Icon: FilmIcon },
   { id: 'architecture', label: 'Specs', Icon: LayersIcon },
@@ -698,6 +700,12 @@ export default function App() {
                 </div>
               </div>
             ) : <Optimizer apiKey={apiKey} onKeyChange={onKeyChange} onBusy={setBusy} />}
+          </section>
+        )}
+
+        {activeTab === 'guide' && (
+          <section className="workspace-view active" key="guide">
+            <Guide onSwitchToOptimizer={() => setActiveTab('optimizer')} />
           </section>
         )}
 

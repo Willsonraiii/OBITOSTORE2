@@ -972,7 +972,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                   onChange={(e) => setEnsureH264(e.target.checked)}
                 />
                 <span className="h264-opt-badge">Optional</span>
-                <span className="h264-opt-text">Tag as H.264 compatible (avc1 metadata brand)</span>
+                <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
               </label>
             </div>
 
@@ -1034,7 +1034,21 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
         {/* Pre-Upload Details (confirm phase only) */}
         {src && phase === 'confirm' && (
-          <SpecGrid p={src} />
+          <>
+            <SpecGrid p={src} />
+            <div className="h264-opt-wrap my-3">
+              <label className="h264-opt-label">
+                <input
+                  type="checkbox"
+                  className="h264-opt-checkbox"
+                  checked={ensureH264}
+                  onChange={(e) => setEnsureH264(e.target.checked)}
+                />
+                <span className="h264-opt-badge">Optional</span>
+                <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
+              </label>
+            </div>
+          </>
         )}
 
         {/* Output Specs when Done */}

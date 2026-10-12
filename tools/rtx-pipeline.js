@@ -327,6 +327,72 @@ async function applyColorGrade(srcPath, dstPath, presetId) {
   });
 }
 
+async function transcodeToH264(srcPath, dstPath) {
+  let durationSec = 0;
+  try {
+    const probe = spawnSync('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'v:0',
+      '-show_entries', 'format=duration',
+      '-of', 'json',
+      srcPath,
+    ], { encoding: 'utf8' });
+    if (probe.status === 0) {
+      const data = JSON.parse(probe.stdout || '{}');
+      durationSec = parseFloat(data.format?.duration || 0);
+    }
+  } catch {}
+
+  const ffmpegArgs = [
+    '-y',
+    '-i', srcPath,
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',
+    '-crf', '17',
+    '-threads', '1',
+    '-filter_threads', '1',
+    '-x264-params', 'no-mbtree=1:rc-lookahead=0:sync-lookahead=0:b-adapt=0:bframes=0:ref=1:aq-mode=0',
+    '-video_track_timescale', '600',
+    '-c:a', 'copy',
+    '-progress', 'pipe:2',
+    dstPath,
+  ];
+
+  await new Promise((resolve, reject) => {
+    const child = spawn('ffmpeg', ffmpegArgs);
+    let errOutput = '';
+    let lastProgressPct = 5;
+
+    child.stderr.on('data', (data) => {
+      const text = data.toString();
+      const match = text.match(/out_time_us=(\d+)/);
+      if (match && durationSec > 0) {
+        const currentSec = parseInt(match[1], 10) / 1000000;
+        const pct = Math.min(45, Math.max(5, Math.round(5 + (currentSec / durationSec) * 40)));
+        if (pct > lastProgressPct) {
+          lastProgressPct = pct;
+          reportProgress(pct, 'converting-to-h264');
+        }
+      }
+      errOutput += text;
+      if (errOutput.length > 2000) errOutput = errOutput.slice(-2000);
+    });
+
+    child.on('error', (err) => {
+      reject(new Error(`Failed to start ffmpeg H.264 transcode: ${err.message}`));
+    });
+
+    child.on('close', (code, signal) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        const reason = signal ? `killed with signal ${signal}` : `exited with code ${code}`;
+        reject(new Error(`ffmpeg H.264 transcode ${reason}: ${errOutput.slice(-500).trim()}`));
+      }
+    });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 1. streamFaststartRemux with the iso signature directly to disk
 // ---------------------------------------------------------------------------
@@ -344,19 +410,42 @@ if (isGraded) {
   await applyColorGrade(inputPath, stage0Path, colorPreset);
 }
 
+let sourceCodec = 'unknown';
+try {
+  const probe = spawnSync('ffprobe', [
+    '-v', 'error',
+    '-select_streams', 'v:0',
+    '-show_entries', 'stream=codec_name',
+    '-of', 'json',
+    stage0Path,
+  ], { encoding: 'utf8' });
+  if (probe.status === 0) {
+    const data = JSON.parse(probe.stdout || '{}');
+    sourceCodec = data.streams?.[0]?.codec_name || 'unknown';
+  }
+} catch {}
+
+if (ensureH264 && sourceCodec !== 'h264') {
+  reportProgress(5, 'converting-to-h264');
+  const stage0H264Path = path.join(workDir, 'stage0-h264.mp4');
+  await transcodeToH264(stage0Path, stage0H264Path);
+  stage0Path = stage0H264Path;
+}
+
 const stage1Path = path.join(workDir, 'stage1.mp4');
 const stage2Path = path.join(workDir, 'stage2.mp4');
 
-reportProgress(isGraded ? 50 : 10, 'reading');
+reportProgress(isGraded || ensureH264 ? 50 : 10, 'reading');
 const remuxed = await streamFaststartRemux(stage0Path, stage1Path, {
   stripDV: !keepDv,
   rebrand: true,
   isoSignature: true,
+  ensureH264,
 });
 
 const dvStripped = remuxed.dvStripped;
 const rebranded = remuxed.rebranded;
-reportProgress(isGraded ? 65 : 35, 'remuxed');
+reportProgress(isGraded || ensureH264 ? 65 : 35, 'remuxed');
 
 // ---------------------------------------------------------------------------
 // 2. Read only the header of stage1.mp4 to derive and apply timing transforms
@@ -624,6 +713,8 @@ const outputStat = await stat(outputPath);
 const outputBytes = outputStat.size;
 const summary = {
   mode: keepDv ? 'standard' : 'hdr',
+  ensureH264,
+  sourceCodec,
   colorPreset,
   inputBytes,
   outputBytes,

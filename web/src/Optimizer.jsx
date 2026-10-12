@@ -1070,7 +1070,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                     onChange={(e) => setEnsureH264(e.target.checked)}
                   />
                   <span className="h264-opt-badge">Optional</span>
-                  <span className="h264-opt-text">Convert to H.264 / AVC (high compatibility)</span>
+                  <span className="h264-opt-text">Tag as H.264 compatible (avc1 metadata brand)</span>
                 </label>
               </div>
               <button

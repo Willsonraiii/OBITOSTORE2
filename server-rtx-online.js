@@ -204,16 +204,16 @@ function startNextJob() {
   job.status = 'processing';
   job.progress = 0;
   job.stage = 'starting';
-  const gradeLabel = job.preset && job.preset !== 'original' ? ` · preset ${job.preset}` : ' · pure lossless';
-  job.log = [`[obito] optimizing ${job.fileName || 'video'} · mode ${job.mode}${gradeLabel}`];
+  const h264Label = job.ensureH264 ? ' · tag avc1' : '';
+  job.log = [`[obito] optimizing ${job.fileName || 'video'} · mode ${job.mode}${h264Label}`];
   job.probeIn = summarizeProbe(probeFile(job.inputPath));
   if (job.probeIn) logLine(job, `[obito] source: ${job.probeIn.w}x${job.probeIn.h} · ${job.probeIn.fps} fps · ${job.probeIn.codec}${job.probeIn.transfer && job.probeIn.transfer !== 'unknown' ? ' · ' + job.probeIn.transfer : ''}`);
   job.startedAt = Date.now();
-  console.log(`[job ${job.id}] processing started (${job.inputBytes} bytes, mode ${job.mode}${gradeLabel})`);
+  console.log(`[job ${job.id}] processing started (${job.inputBytes} bytes, mode ${job.mode}${h264Label})`);
 
   const workerArgs = ['--expose-gc', '--max-old-space-size=48', PIPELINE_TOOL, job.inputPath, job.outputPath];
   if (job.mode === 'standard') workerArgs.push('--keep-dv');
-  if (job.preset && job.preset !== 'original') workerArgs.push('--grade', job.preset);
+  if (job.ensureH264) workerArgs.push('--ensure-h264');
 
   const child = spawn(process.execPath, workerArgs, {
     cwd: ROOT,
@@ -859,7 +859,7 @@ app.post('/api/uploads/:id/start', express.json({ limit: '10kb' }), async (req, 
     if (!up) return res.status(404).json({ error: 'Unknown upload.' });
     if (up.received !== up.size) return res.status(409).json({ error: 'Upload is not complete.', received: up.received });
     const mode = req.body?.mode === 'standard' ? 'standard' : 'hdr';
-    const preset = String(req.body?.preset || 'original');
+    const ensureH264 = Boolean(req.body?.ensureH264);
 
     const id = newJobId();
     const dir = path.join(JOBS_DIR, id);
@@ -871,12 +871,12 @@ app.post('/api/uploads/:id/start', express.json({ limit: '10kb' }), async (req, 
     const job = {
       id, dir, inputPath, uploadId,
       outputPath: path.join(dir, 'output.mp4'),
-      status: 'queued', mode, preset, createdAt: Date.now(),
+      status: 'queued', mode, ensureH264, createdAt: Date.now(),
       inputBytes: up.size, outputBytes: null, error: null,
       fileName: up.name || null,
     };
     jobs.set(id, job);
-    console.log(`[job ${id}] queued from upload ${uploadId} (${up.size} bytes, preset ${preset}, ${jobs.size} total)`);
+    console.log(`[job ${id}] queued from upload ${uploadId} (${up.size} bytes, ensureH264=${ensureH264}, ${jobs.size} total)`);
     startNextJob();
     res.status(201).json({ id });
   } catch (error) {

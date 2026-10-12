@@ -8,7 +8,6 @@ import {
 } from './icons.jsx';
 import { probeLocalFile } from './localProbe.js';
 import { LiquidButton } from '@/components/ui/liquid-glass-button';
-import { COLOR_PRESETS, getPresetById } from './colorPresets.js';
 
 class MetalErrorBoundary extends Component {
   constructor(props) {
@@ -171,46 +170,6 @@ function SpecGrid({ p, realFps, isOutput }) {
   );
 }
 
-/* ---------- Interactive Color Preset Picker (Confirm Phase) ---------- */
-function ColorPresetPicker({ value, onChange }) {
-  return (
-    <div className="color-preset-section">
-      <div className="color-preset-header">
-        <div className="preset-header-title">
-          <SparkIcon width={14} height={14} className="text-amber-400" />
-          <span>Color Grade Style</span>
-        </div>
-        <span className="preset-optional-badge">Optional</span>
-      </div>
-      <div className="color-preset-scroll" role="radiogroup" aria-label="Color grade preset">
-        {COLOR_PRESETS.map((p) => {
-          const active = value === p.id;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={`preset-card ${active ? 'active' : ''}`}
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(8); } catch {}
-                onChange(p.id);
-              }}
-            >
-              <div className="preset-card-glow" style={{ background: p.accentColor }} />
-              <div className="preset-swatch-row">
-                <span className="preset-dot" style={{ background: p.accentColor }} />
-                <span className="preset-badge">{p.badge}</span>
-              </div>
-              <div className="preset-title">{p.name}</div>
-              <div className="preset-desc">{p.shortDesc}</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 const isStandalone = () =>
   typeof window !== 'undefined' &&
@@ -416,10 +375,9 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   keyRef.current = apiKey;
   modeRef.current = mode;
 
-  const [colorPreset, setColorPreset] = useState('original');
-  const presetRef = useRef('original');
-  presetRef.current = colorPreset;
-  const [gradeState, setGradeState] = useState({ loading: false, resultId: null, preset: null, error: '' });
+  const [ensureH264, setEnsureH264] = useState(false);
+  const h264Ref = useRef(false);
+  h264Ref.current = ensureH264;
   const [uploadSpeed, setUploadSpeed] = useState('');
   const uploadStartTime = useRef(0);
 
@@ -508,13 +466,13 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   const startJob = useCallback(async (uploadId) => {
     setPhase('queued');
     setPct(0);
-    const presetLabel = presetRef.current !== 'original' ? ` (${getPresetById(presetRef.current).name})` : '';
-    setLog((prev) => [...prev, `[obito] Ingestion complete. Initializing timescale remux engine${presetLabel}...`]);
+    const h264Label = h264Ref.current ? ' · H.264 compatibility tag' : '';
+    setLog((prev) => [...prev, `[obito] Ingestion complete. Initializing timescale remux engine${h264Label}...`]);
     try {
       const r = await fetch(withKey('/api/uploads/' + uploadId + '/start'), {
         method: 'POST',
         headers: { ...headers(), 'content-type': 'application/json' },
-        body: JSON.stringify({ mode: modeRef.current, preset: presetRef.current })
+        body: JSON.stringify({ mode: modeRef.current, ensureH264: h264Ref.current })
       });
       if (r.status === 401) return fail('Access key required.', true);
       if (r.status === 404) {
@@ -534,56 +492,6 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
       poll(jobId.current);
     } catch { fail('Could not reach the server.'); }
   }, [fail, headers, poll, withKey]);
-
-  const applyPostGrade = useCallback(async (targetPreset) => {
-    if (!result?.id || gradeState.loading) return;
-    setGradeState({ loading: true, resultId: null, preset: targetPreset, error: '' });
-    try {
-      const r = await fetch(withKey('/api/jobs/' + result.id + '/grade'), {
-        method: 'POST',
-        headers: { ...headers(), 'content-type': 'application/json' },
-        body: JSON.stringify({ preset: targetPreset })
-      });
-      if (!r.ok) {
-        const errJson = await r.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Could not start color grade.');
-      }
-      const data = await r.json();
-      const gradeJobId = data.id;
-
-      let gradeFails = 0;
-      const gradeTimer = setInterval(async () => {
-        try {
-          const resp = await fetch(withKey('/api/jobs/' + gradeJobId), { headers: headers() });
-          if (resp.ok) {
-            gradeFails = 0;
-            const j = await resp.json();
-            if (j.status === 'done') {
-              clearInterval(gradeTimer);
-              setGradeState({ loading: false, resultId: gradeJobId, preset: targetPreset, error: '' });
-            } else if (j.status === 'failed') {
-              clearInterval(gradeTimer);
-              setGradeState({ loading: false, resultId: null, preset: null, error: j.error || 'Grading failed.' });
-            }
-          } else {
-            gradeFails++;
-            if (gradeFails > 15) {
-              clearInterval(gradeTimer);
-              setGradeState({ loading: false, resultId: null, preset: null, error: 'Lost connection to server.' });
-            }
-          }
-        } catch {
-          gradeFails++;
-          if (gradeFails > 15) {
-            clearInterval(gradeTimer);
-            setGradeState({ loading: false, resultId: null, preset: null, error: 'Lost connection to server.' });
-          }
-        }
-      }, 1500);
-    } catch (err) {
-      setGradeState({ loading: false, resultId: null, preset: null, error: err.message || 'Error applying grade.' });
-    }
-  }, [gradeState.loading, headers, result, withKey]);
 
   /* ----- chunk upload loop ----- */
   const runUpload = useCallback(async () => {
@@ -1055,6 +963,19 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
             <ModeSelect value={mode} onChange={setMode} />
 
+            <div className="h264-opt-wrap">
+              <label className="h264-opt-label">
+                <input
+                  type="checkbox"
+                  className="h264-opt-checkbox"
+                  checked={ensureH264}
+                  onChange={(e) => setEnsureH264(e.target.checked)}
+                />
+                <span className="h264-opt-badge">Optional</span>
+                <span className="h264-opt-text">Tag as H.264 compatible (avc1 metadata brand)</span>
+              </label>
+            </div>
+
             <div className="choose-btn-wrap my-3">
               <label htmlFor="video-file-input" className="btn-primary-hero choose-file-label">
                 <UploadIcon width={18} height={18} />
@@ -1139,32 +1060,29 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
           )}
 
           {phase === 'confirm' && (
-            <>
-              <ColorPresetPicker value={colorPreset} onChange={setColorPreset} />
-              <div className="confirm-buttons">
-                <SafeMetalFx preset="chromatic" strength={1} theme="dark" innerShadow>
-                  <button
-                    type="button"
-                    className="btn-start-optimize"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(12); } catch {}
-                      confirmAt === 'pre' ? runUpload() : startJob(upId.current);
-                    }}
-                  >
-                    <SparkIcon width={20} height={20} />
-                    <span>Start Optimize Video</span>
-                  </button>
-                </SafeMetalFx>
+            <div className="confirm-buttons">
+              <SafeMetalFx preset="chromatic" strength={1} theme="dark" innerShadow>
                 <button
                   type="button"
-                  className="btn-secondary btn-choose-another"
-                  onClick={reset}
+                  className="btn-start-optimize"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(12); } catch {}
+                    confirmAt === 'pre' ? runUpload() : startJob(upId.current);
+                  }}
                 >
-                  <RefreshIcon width={16} height={16} />
-                  <span>Choose another</span>
+                  <SparkIcon width={20} height={20} />
+                  <span>Start Optimize Video</span>
                 </button>
-              </div>
-            </>
+              </SafeMetalFx>
+              <button
+                type="button"
+                className="btn-secondary btn-choose-another"
+                onClick={reset}
+              >
+                <RefreshIcon width={16} height={16} />
+                <span>Choose another</span>
+              </button>
+            </div>
           )}
 
           {phase === 'done' && result && (
@@ -1212,60 +1130,11 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                   </span>
                 </LiquidButton>
               )}
-              <button type="button" className="btn-secondary" onClick={reset}>
-                <RefreshIcon width={16} height={16} /> Optimize another
-              </button>
-            </div>
-
-            {/* Aesthetic Post-Optimization Color Grade */}
-            <div className="post-grade-section">
-              <div className="post-grade-head">
-                <SparkIcon width={15} height={15} className="text-amber-400" />
-                <h4>Want an aesthetic look? Grade this video</h4>
+                <button type="button" className="btn-secondary" onClick={reset}>
+                  <RefreshIcon width={16} height={16} /> Optimize another
+                </button>
               </div>
-              <p className="post-grade-sub">Render a styled master variation without re-uploading.</p>
-              <div className="post-grade-pills">
-                {COLOR_PRESETS.filter((p) => p.id !== 'original').map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="post-grade-pill-btn"
-                    disabled={gradeState.loading}
-                    onClick={() => applyPostGrade(p.id)}
-                  >
-                    <span className="post-grade-pill-dot" style={{ background: p.accentColor }} />
-                    <span>{p.name}</span>
-                  </button>
-                ))}
-              </div>
-              {gradeState.loading && (
-                <div className="mt-3 text-xs text-sky-400 flex items-center gap-2">
-                  <span className="terminal-indicator pulsing" />
-                  <span>Applying {getPresetById(gradeState.preset).name} preset...</span>
-                </div>
-              )}
-              {gradeState.resultId && (
-                <div className="graded-ready-card">
-                  <div className="graded-ready-info">
-                    <CheckIcon width={16} height={16} />
-                    <span>{getPresetById(gradeState.preset).name} ready!</span>
-                  </div>
-                  <a
-                    href={withKey('/api/jobs/' + gradeState.resultId + '/download')}
-                    className="btn-chip"
-                    download
-                  >
-                    <DownloadIcon width={14} height={14} /> Download Graded
-                  </a>
-                </div>
-              )}
-              {gradeState.error && (
-                <div className="mt-2 text-xs text-rose-400">
-                  {gradeState.error}
-                </div>
-              )}
-            </div>
-          </>
+            </>
           )}
 
           {phase === 'error' && (

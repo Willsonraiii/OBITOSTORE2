@@ -204,6 +204,7 @@ let fillerCountOverride = null;
 let keepTemp = false;
 let keepDv = false;
 let colorPreset = 'original';
+let ensureH264 = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -211,6 +212,7 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--filler-count') fillerCountOverride = Number(args[++i]);
   else if (arg === '--keep-temp') keepTemp = true;
   else if (arg === '--keep-dv') keepDv = true; // mode "standard": leave Dolby Vision signalling untouched
+  else if (arg === '--ensure-h264') ensureH264 = true;
   else if (arg === '--grade') colorPreset = String(args[++i] || 'original');
   else positional.push(arg);
 }

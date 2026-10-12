@@ -2929,21 +2929,25 @@ button {
   .clean-dropzone.phase-process .live-terminal,
   .clean-dropzone.phase-upload .live-terminal,
   .clean-dropzone.phase-queued .live-terminal {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    margin: 8px 0;
-    min-height: 140px;
-    max-height: 200px;
+    margin: 10px 0 14px;
+    min-height: 150px;
+    max-height: 240px;
     overflow: hidden;
   }
   .clean-dropzone.phase-process .terminal-body,
   .clean-dropzone.phase-upload .terminal-body,
   .clean-dropzone.phase-queued .terminal-body {
-    flex: 1;
-    min-height: 100px;
+    flex: 1 1 auto;
+    min-height: 110px;
+    max-height: none;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding: 10px 12px;
+    font-size: 11px;
+    line-height: 1.55;
   }
   .clean-dropzone.phase-process .dropzone-controls,
   .clean-dropzone.phase-upload .dropzone-controls,
@@ -3026,10 +3030,8 @@ button {
   .live-terminal {
     margin: 8px 0 0;
   }
-  .terminal-body {
-    max-height: 85px;
-    font-size: 10px;
-    padding: 8px 10px;
+  .clean-dropzone:not(.phase-process):not(.phase-upload):not(.phase-queued) .terminal-body {
+    max-height: 90px;
   }
   .insp-tabs {
     width: 100%;
@@ -3925,4 +3927,55 @@ button {
   .h264-opt-text {
     font-size: 10px;
   }
+}
+
+/* Creator Upload Quality Tip Banner */
+.tiktok-tip-card {
+  width: 100%;
+  max-width: 420px;
+  margin: 12px auto 16px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: var(--radius-md, 12px);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.tiktok-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.tiktok-tip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tiktok-tip-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+.tiktok-tip-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.7);
 }

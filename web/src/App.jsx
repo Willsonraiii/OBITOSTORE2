@@ -563,13 +563,6 @@ export default function App() {
               <p className="hero-subline text-white/70 text-xs sm:text-sm md:text-base max-w-xl mx-auto mb-3 transition-opacity duration-300">
                 {HERO_MESSAGES[heroMsgIndex].sub}
               </p>
-              <div className="flex items-center justify-center gap-2">
-                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                </span>
-                <p className="text-xs text-green-400 font-medium tracking-wide">TikTok Ingestion Engine Ready · 19200 Timescale</p>
-              </div>
             </div>
 
             {memberPreview && authChecking ? (
@@ -714,11 +707,11 @@ export default function App() {
             <div className="section-head">
               <div className="head-badge">
                 <InspectIcon width={14} height={14} />
-                <span>TIKTOK INGESTION DIAGNOSTICS</span>
+                <span>CODEC AUDIT</span>
               </div>
-              <h2 className="head-title">TikTok Video &amp; Codec Inspector</h2>
+              <h2 className="head-title">TikTok Codec Inspector</h2>
               <p className="head-sub">
-                Audit any live TikTok video URL or local master clip against TikTok\'s high-FPS (60fps / 120fps) and HDR ingestion criteria.
+                Audit video containers, timescale, 60fps/120fps, and HDR color metadata.
               </p>
             </div>
             <Inspector apiKey={apiKey} />

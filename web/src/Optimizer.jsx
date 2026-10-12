@@ -931,8 +931,13 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'done' && 'Your video is ready!'}
             {phase === 'error' && 'Notice'}
           </h2>
-          <p className="dropzone-sub">
-            {phase === 'idle' && 'MP4 or MOV · up to 600 MB'}
+          <div className="dropzone-sub">
+            {phase === 'idle' && (
+              <div className="idle-sub-specs">
+                <span className="idle-ingestion-badge">TikTok Ingestion Engine · 19200 Timescale</span>
+                <span className="idle-formats-label">MP4 or MOV · Lossless container copy up to 600 MB</span>
+              </div>
+            )}
             {phase === 'confirm' && `${file?.name} · zero re-encoding loss`}
             {phase === 'upload' && `${file?.name} (${fmt(file?.size || 0)})${uploadSpeed ? ' · ' + uploadSpeed : ''}`}
             {phase === 'paused' && `${Math.round(pct)}% uploaded · Tap Resume to continue`}
@@ -940,7 +945,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'process' && 'Repackaging container with zero quality loss...'}
             {phase === 'done' && `Output size: ${fmt(result?.bytes || 0)}`}
             {phase === 'error' && error}
-          </p>
+          </div>
         </div>
 
         {/* Mode Selector and Choose Button when Idle */}
@@ -1112,31 +1117,24 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                 <a
                   href={withKey('/api/jobs/' + result.id + '/download')}
                   download={(file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4'}
+                  className="btn-download-master"
                 >
-                  <LiquidButton
-                    type="button"
-                    className="text-white border border-white/20 rounded-full font-semibold shadow-xl"
-                    size="xl"
-                  >
-                    <DownloadIcon width={20} height={20} />
-                    <span>Download Master Video</span>
-                  </LiquidButton>
+                  <DownloadIcon width={20} height={20} />
+                  <span>Download Master Video</span>
                 </a>
               ) : dl.state === 'ready' ? (
-                <LiquidButton
+                <button
                   type="button"
-                  className="text-white border border-white/20 rounded-full font-semibold shadow-xl"
-                  size="xl"
+                  className="btn-download-master"
                   onClick={saveFile}
                 >
                   <ShareIcon width={20} height={20} />
                   <span>Save Video / Share</span>
-                </LiquidButton>
+                </button>
               ) : (
-                <LiquidButton
+                <button
                   type="button"
-                  className="text-white border border-white/20 rounded-full font-semibold shadow-xl"
-                  size="xl"
+                  className="btn-download-master"
                   onClick={prepareFile}
                   disabled={dl.state === 'loading'}
                 >
@@ -1148,7 +1146,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                       ? 'Retry Download'
                       : 'Download Master Video'}
                   </span>
-                </LiquidButton>
+                </button>
               )}
                 <button type="button" className="btn-secondary" onClick={reset}>
                   <RefreshIcon width={16} height={16} /> Optimize another

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BotStage } from './Optimizer.jsx';
+import { ThinkingOrb } from 'thinking-orbs';
 import {
   CheckIcon, CloseIcon, InspectIcon, UploadIcon, FilmIcon,
   SearchIcon, SparkIcon, AlertTriangleIcon, LightningIcon
@@ -346,10 +346,12 @@ export default function Inspector({ apiKey }) {
 
       {tab === 'link' ? (
         <div className="clean-dropzone insp-native-card">
-          <BotStage phase={phase === 'linking' ? 'process' : phase === 'error' ? 'error' : 'idle'} busy={busy} />
+          <div className="member-orb mb-3" aria-hidden="true">
+            <ThinkingOrb state={phase === 'linking' ? 'searching' : phase === 'error' ? 'idle' : 'idle'} size={60} theme="dark" />
+          </div>
           <div className="dropzone-text">
-            <h2 className="dropzone-title">Inspect a TikTok video</h2>
-            <p className="dropzone-sub">Paste a public video link to see what TikTok makes available.</p>
+            <h2 className="dropzone-title">Inspect TikTok Link</h2>
+            <p className="dropzone-sub">Paste any TikTok URL to check available video streams.</p>
           </div>
           <form className="insp-native-form" onSubmit={(e) => { e.preventDefault(); if (!busy) runLink(); }}>
             <label htmlFor="insp-url">TikTok video link</label>
@@ -364,10 +366,12 @@ export default function Inspector({ apiKey }) {
           onDragOver={(e) => { e.preventDefault(); if (!busy) setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) runFile(e.dataTransfer.files?.[0]); }}>
-          <BotStage phase={phase === 'sending' ? 'upload' : 'idle'} busy={busy} />
+          <div className="member-orb mb-3" aria-hidden="true">
+            <ThinkingOrb state={phase === 'sending' ? 'working' : 'idle'} size={60} theme="dark" />
+          </div>
           <div className="dropzone-text">
-            <h2 className="dropzone-title">Inspect a video file</h2>
-            <p className="dropzone-sub">Check the FPS, resolution, codec and HDR details of a saved video.</p>
+            <h2 className="dropzone-title">Inspect Video File</h2>
+            <p className="dropzone-sub">Analyze container atoms, framerate, and color profile.</p>
           </div>
           {phase === 'sending' ? (
             <div className="insp-analyzing">

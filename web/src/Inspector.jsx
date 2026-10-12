@@ -347,7 +347,7 @@ export default function Inspector({ apiKey }) {
       {tab === 'link' ? (
         <div className="clean-dropzone insp-native-card">
           <div className="member-orb mb-3" aria-hidden="true">
-            <ThinkingOrb state={phase === 'linking' ? 'searching' : phase === 'error' ? 'idle' : 'idle'} size={60} theme="dark" />
+            <ThinkingOrb state={phase === 'linking' ? 'searching' : 'breathing'} size={64} theme="dark" />
           </div>
           <div className="dropzone-text">
             <h2 className="dropzone-title">Inspect TikTok Link</h2>
@@ -367,7 +367,7 @@ export default function Inspector({ apiKey }) {
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy) runFile(e.dataTransfer.files?.[0]); }}>
           <div className="member-orb mb-3" aria-hidden="true">
-            <ThinkingOrb state={phase === 'sending' ? 'working' : 'idle'} size={60} theme="dark" />
+            <ThinkingOrb state={phase === 'sending' ? 'working' : 'breathing'} size={64} theme="dark" />
           </div>
           <div className="dropzone-text">
             <h2 className="dropzone-title">Inspect Video File</h2>

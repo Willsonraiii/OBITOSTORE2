@@ -932,12 +932,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'error' && 'Notice'}
           </h2>
           <div className="dropzone-sub">
-            {phase === 'idle' && (
-              <div className="idle-sub-specs">
-                <span className="idle-ingestion-badge">TikTok Ingestion Engine · 19200 Timescale</span>
-                <span className="idle-formats-label">MP4 or MOV · Lossless container copy up to 600 MB</span>
-              </div>
-            )}
+            {phase === 'idle' && 'MP4 or MOV · Lossless container copy up to 600 MB'}
             {phase === 'confirm' && `${file?.name} · zero re-encoding loss`}
             {phase === 'upload' && `${file?.name} (${fmt(file?.size || 0)})${uploadSpeed ? ' · ' + uploadSpeed : ''}`}
             {phase === 'paused' && `${Math.round(pct)}% uploaded · Tap Resume to continue`}

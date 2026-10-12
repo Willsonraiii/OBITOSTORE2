@@ -317,11 +317,18 @@ export default function App() {
       const t = e.touches[0];
       if (dockBarRef.current) {
         const rect = dockBarRef.current.getBoundingClientRect();
-        setDragOffset(Math.max(0, Math.min(t.clientX - rect.left, rect.width)));
+        const clientX = t.clientX;
+        const relativeX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+        setDragOffset(relativeX);
+
+        // Map touch position directly to tab index across all tabs
+        const tabWidth = rect.width / TABS.length;
+        const tabIdx = Math.max(0, Math.min(Math.floor(relativeX / tabWidth), TABS.length - 1));
+        const targetTab = TABS[tabIdx]?.id;
+        if (targetTab) {
+          setHoveredTab(targetTab);
+        }
       }
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const tabBtn = el?.closest('.ios-dock-item');
-      if (tabBtn) setHoveredTab(tabBtn.getAttribute('data-tab-id'));
     }
   };
 
@@ -331,22 +338,23 @@ export default function App() {
     const t = e.touches[0];
     if (dockBarRef.current) {
       const rect = dockBarRef.current.getBoundingClientRect();
-      setDragOffset(Math.max(0, Math.min(t.clientX - rect.left, rect.width)));
-    }
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    const tabBtn = el?.closest('.ios-dock-item');
-    if (tabBtn) {
-      const tabId = tabBtn.getAttribute('data-tab-id');
-      if (tabId !== hoveredTab) {
-        setHoveredTab(tabId);
-        if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(6); } catch {}
+      const clientX = t.clientX;
+      const relativeX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      setDragOffset(relativeX);
+
+      // Freely track which tab the finger is over along the entire width (1st to 6th)
+      const tabWidth = rect.width / TABS.length;
+      const tabIdx = Math.max(0, Math.min(Math.floor(relativeX / tabWidth), TABS.length - 1));
+      const targetTab = TABS[tabIdx]?.id;
+      if (targetTab && targetTab !== hoveredTab) {
+        setHoveredTab(targetTab);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(8); } catch {}
       }
-    } else {
-      setHoveredTab(null);
     }
   };
 
   const onDockTouchEnd = (e) => {
+    // Commit the hovered tab directly when releasing anywhere on the dock bar
     if (hoveredTab) {
       switchTabWithHaptic(hoveredTab);
       suppressClickRef.current = true;

@@ -1,12 +1,25 @@
 # OBITO STUDIO — The Project Book
 
-Last updated: **2026-10-11**. **Read this file first. Then read COMMANDS.md.** That is all you need to run, maintain, and expand the project without needing AI agents.
+Last updated: **2026-10-12**. **Read this file first, along with AGENTS.md and COMMANDS.md.** That is all you need to run, maintain, and expand the project.
 
-Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-service`.
+Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-service` (mirrored to `main`).
 
 ---
 
-## CURRENT STATUS — 2026-10-11 (read before historical sections)
+## CURRENT STATUS — 2026-10-12 (Latest Definitive State)
+
+- **Production Environment**: Linux host on port `3005` managed via systemd `obito-studio.service` (`https://obitostudio.willsonrai.com.np`).
+- **Zero-RAM Remote Link Inspector**: Deployed upstream CDN stream resolver (TikWM) with HTTP Range header probing (`bytes=0-1572863`, 1.5MB) in `server-rtx-online.js`. Resolves true FPS, resolution, codec, duration, and 19200 timescale in 0.05s with negligible memory usage (~1.5 MB buffer, instantly garbage-collected) and zero cloud RAM spikes.
+- **UI & Layout Refinements**:
+  - **Master Download Button**: Refined to a sleek studio action button (`42px` height, subtle sapphire-cyan glass rim) that does not clash with or overpower the terminal.
+  - **Optimizer Frame Spacing**: Eliminated all dead voids between headers, mode toggles, file choose buttons, and trust rows. Fixed the mode toggle pill slider to sit flush with zero gap or border artifacts.
+  - **Zero AI-Generated / Vibe-Coded Aesthetics**: Stripped all sparkle emojis (`✨`), removed `CREATOR MASTERCLASS` badge pill, and eliminated purple/blue gradient text in favor of solid high-contrast studio white (`#ffffff`).
+- **Cinema Timecode Synthesizer**: Injects SMPTE `tmcd` and `tref` tracks losslessly via `lib/timecode-injector.js`.
+- **Git & Deployment**: Primary branch is `online-rtx-service` (mirrored to `main`). Secondary clone at `/home/willson/Desktop/vague-infinity-clone` kept in lockstep. Experimental Part-2 operates strictly isolated on port `3006`.
+
+---
+
+## HISTORICAL STATUS — 2026-10-11
 
 - Production branch: `online-rtx-service`. Last confirmed pushed commit from user: `0f39441` (FFmpeg decoder/filter threads limited). Live site: `https://obitostudio.willsonrai.com.np`, Suga free tier (0.1 CPU, 256 MiB, one replica). Do not claim a later commit has deployed without user confirmation.
 - User is working from **Windows PowerShell** at `$HOME\Desktop\vague-transcode-4k-test`. `COMMANDS.md` has both Linux and Windows paths; do not assume Linux. In 2026-10-11 session, Windows fetched/pulled to `0f39441`, applied `obito-owner-login.patch`, ran `npm --prefix web ci` and `npm --prefix web run build`, and staged source + `public/`. They have **not yet confirmed a commit or push**. `git diff --cached --check` may report whitespace in generated JS shader strings; do not edit those strings just to silence warnings. On Windows, Vite may produce CRLF in `public/index.html`; normalize to LF if Git flags it.

@@ -1026,18 +1026,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
         {/* Output Specs when Done */}
         {phase === 'done' && out && (
-          <>
-            <SpecGrid p={out} realFps={result?.srcFps} isOutput />
-            <div className="tiktok-tip-card">
-              <span className="tiktok-tip-icon" aria-hidden="true">💡</span>
-              <div className="tiktok-tip-content">
-                <span className="tiktok-tip-title">Creator Upload Tip for Max Quality</span>
-                <span className="tiktok-tip-desc">
-                  Publish directly as <b>Public</b> on TikTok. Saving as a <i>Private Draft</i> first triggers TikTok&apos;s aggressive secondary compression pass.
-                </span>
-              </div>
-            </div>
-          </>
+          <SpecGrid p={out} realFps={result?.srcFps} isOutput />
         )}
 
         {/* Live Optimizing Terminal */}

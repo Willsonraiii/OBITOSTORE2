@@ -1,6 +1,15 @@
-# Vague Transcode — Migration / Handoff Notes
+# Vague Transcode (Obito Studio) — Migration & Handoff Notes
 
-> **CURRENT HANDOFF (2026-10-11):** Read `MIGRATION.md` CURRENT STATUS and `COMMANDS.md` before using older notes below. Current branch `online-rtx-service`; last confirmed push `0f39441`. Owner login patch was applied and staged on Windows but not yet confirmed pushed; native Inspector UI patch was prepared but not confirmed applied. Historical claims below (deployment paused, preset RAM fixed, downloads deleted immediately) may be wrong. Never put access-token values in docs.
+> **LATEST PRODUCTION HANDOFF (2026-10-12):**
+> **Current Active Branch:** `online-rtx-service` (mirrored to `main`).
+> **Production Service:** Running live on port `3005` via systemd `obito-studio.service` at `https://obitostudio.willsonrai.com.np`.
+> **Primary Architecture:** React 18 SPA in `web/` built with Vite to `public/`, backed by Node.js `server-rtx-online.js`.
+> **Key Capabilities Active:**
+> 1. 100% Stream Copy (`-c copy`) lossless remuxing with 19200 timescale clock harmonization.
+> 2. SMPTE Cinema Timecode injection (`tmcd` & `tref` tracks) via `lib/timecode-injector.js`.
+> 3. Zero-RAM Remote Link Inspector with TikWM CDN resolution and HTTP Range header probing (`bytes=0-1572863`, 1.5MB), extracting true FPS, resolution, codec, and timescale in <1s.
+> 4. Liquid glass mobile UI with tactile bottom dock, multi-tab sweep gestures, and no AI-generated tropes (zero sparkle emojis, zero purple gradients).
+> **For complete agent guidelines, see [AGENTS.md](file:///home/willson/Desktop/vague-transcode/AGENTS.md).**
 
 ## PWA + PRIVATE ACCESS PLAN (2026-09-30)
 

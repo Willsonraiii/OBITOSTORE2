@@ -1,336 +1,53 @@
-# Continuation Prompt — Vague / RTXFury-Style Online Optimizer (FINAL MIGRATION, 2026-09-29)
+# Agent Instructions: Obito Studio (vague-transcode)
 
-> **CURRENT HANDOFF (2026-10-11):** Read `MIGRATION.md` CURRENT STATUS and `COMMANDS.md` before using older notes below. Current branch `online-rtx-service`; last confirmed push `0f39441`. Owner login patch was applied and staged on Windows but not yet confirmed pushed; native Inspector UI patch was prepared but not confirmed applied. Historical claims below (deployment paused, preset RAM fixed, downloads deleted immediately) may be wrong. Never put access-token values in docs.
-
-## LATEST RESULT — WINDOWS 4K60 REAL VIDEO VALIDATED IN TIKTOK STUDIO (2026-09-30)
-
-USER-CONFIRMED: the third real video (first 4K60) worked in TikTok Studio and HDR is delivered (the project's main target).
-
-### Source (FFprobe, read-only, source untouched)
-- Base filename `1790757802960597` (Windows Downloads). 2160x3840 portrait 4K, 60/1 fps, 863 frames, 14.383 s.
-- HEVC Main 10, yuv420p10le, BT.2020 / HLG (arib-std-b67), ~84.3 Mbps, video time_base 1/600 (divides 19200).
-- Dolby Vision profile 8 (compat id 4) present -> `hdr` mode (DV -> plain HLG).
-- AAC-LC 48 kHz stereo, 675 frames. Size 152,074,462 bytes (145.03 MiB).
-
-### Processing (Windows, `online-rtx-service` clone at 87feb10, Node 24.19.0, FFmpeg/FFprobe 9.0.2)
-- `node tools/rtx-pipeline.js SRC out\1790757802960597-optimized.mp4`, mode `hdr`.
-- Derived: speed x2, video stts `862x640, 1x320`, video elst 28750 ms (mediaTime 0), audio elst 28742 ms (priming 4224), fillers 6075, second track 6750 samples, DV box stripped (1), rebranded.
-- Output 152,155,868 bytes (+81,406). Warnings were the two known UNCONFIRMED rules (audio elst = video - 8 ms; filler = 9 x audio samples).
-- Validation PASSED: ffprobe (HEVC 2160x3840, 30/1, 863 frames, arib-std-b67, NO DOVI record, two AAC tracks 675 + 6750, duration 28.75) and `ffmpeg -v error -copyts -vsync 0 -i OUT -map 0 -c copy -f null -` printed nothing.
-
-### TikTok result (user-reported)
-- HDR: WORKING (user: main target achieved).
-- TikTok Studio shows the published duration as ~28-29 s (the x2 track time).
-- In the TikTok APP the video plays/shows the normal ORIGINAL duration (~14 s). This answers the earlier open question: the app restores real-time duration.
-- Exact HDR-tag wording and visual 4K quality comparison were not itemised by the user beyond "working well".
-
-### Conclusions
-- The method is now validated on three real videos, including 4K60 portrait DV profile 8. `--audio-elst-ms` and `--filler-count` overrides were NOT needed.
-- The two unconfirmed rules (-8 ms, 10x fillers) have now held on a third source without issue.
-- Windows note: no code changes were made in this session; no repository processing code was modified.
-
-### Status / next step
-- Deployment is still PAUSED (no-card free host not chosen; Oracle needs a card). Do not alter the validated pipeline to fit a constrained host.
-- Resume by either running locally (`npm run start:online`, port 3005) or choosing a host. Do not redo sync or setup research.
-
-
-## LATEST CONTINUATION — WINDOWS 4K TEST READY, WAITING FOR FFPROBE (2026-09-30)
-
-The user returned after the deployment pause for a quick 4K60 check. They are now on Windows and want to test a real video, but optimization HAS NOT started. Continue exactly here:
-
-### Windows environment prepared successfully
-- Fresh clone: `%USERPROFILE%\Desktop\vague-transcode-4k-test`
-- Branch/commit cloned from GitHub: `online-rtx-service` at `87feb10`
-- `npm install` completed: 87 packages, audit reported 0 vulnerabilities. Multer 1.x printed a deprecation warning only; it did not block setup.
-- Node: `v24.19.0`
-- FFmpeg: `9.0.2-full_build-www.gyan.dev`
-- FFprobe: `9.0.2-full_build-www.gyan.dev`
-- Git for Windows was updated to `2.55.0.5`.
-- Engine setup is complete; no server is running and no media has been processed yet.
-
-### Real video waiting for inspection
-- Base filename: `1790757802960597` (extension not yet reported)
-- Location: user's Windows Downloads folder
-- Phone displayed size: 152.1 MB; Windows PowerShell displayed 145.03 MiB. This is consistent with decimal MB vs binary MiB (`152.1 MB / 1.048576 ~= 145.05 MiB`), not evidence of corruption. The user zipped the file for transfer; MP4/MOV is already compressed, so little ZIP size reduction is expected.
-- Actual resolution, FPS, codec, HDR/Dolby Vision metadata, audio, duration, and timescale have NOT been inspected because the user has not yet run/pasted ffprobe output.
-
-### Exact next action
-Ask the user to run this read-only PowerShell command (do not optimize yet):
-
-```powershell
-$v = Get-ChildItem "$HOME\Downloads\1790757802960597.*" -File | Select-Object -First 1; if (-not $v) { Write-Error "Video not found in Downloads"; exit 1 }; Write-Host "FILE: $($v.FullName)"; Write-Host "SIZE: $([math]::Round($v.Length / 1MB, 2)) MiB"; ffprobe -v error -show_entries stream=index,codec_type,codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate,time_base,sample_rate,channels,color_range,color_space,color_transfer,color_primaries:stream_side_data -show_entries format=duration,size,format_name -of json "$($v.FullName)"
-```
-
-Review the complete output and explicitly confirm: width/height (4K means 3840x2160 or phone portrait equivalent 2160x3840), exact FPS, codec/profile/pixel format, HDR/DV signaling, presence of audio, file size below 600 MB, and video time base compatibility (pipeline requires the video timescale to divide 19200). Only after that should you provide the optimization command. Leave the source untouched. After output generation, validation is mandatory: ffprobe plus `ffmpeg -v error -copyts -vsync 0 -i OUTPUT -map 0 -c copy -f null -`. Never claim this exact 4K60 source works in TikTok until the user confirms it in TikTok Studio.
-
-### Important clarification already given to user
-For a 60 fps input, the validated RTXFury-style pipeline keeps all frames and applies x2 timing, yielding approximately 30 fps track timing and twice the source track duration (e.g. 600 frames: 10 s at 60 fps becomes about 20 s at 30 fps). It does not re-encode. We have NOT confirmed that TikTok restores the final published result to the original real-time duration; prior user validation confirmed HDR delivery, not final published duration. Be transparent about this.
-
-
-## LATEST CONTINUATION UPDATE — PAUSED 2026-09-30
-
-The bundle-to-laptop/GitHub synchronization is complete. GitHub received `online-rtx-service` at `87feb10` and `rtx-audio-track-experiment` at `30814a5`. Divergent laptop history was preserved as `laptop-prebundle-rtx-backup` (`2d9bdcc`), and the user's former uncommitted files were preserved on `laptop-uncommitted-backup` (resulting commit hash not reported). Deployment did not occur. Oracle Always Free was discussed, but the user does not want any payment-card requirement, and no alternative host was selected. The user explicitly paused the local-laptop optimizer/deployment process to continue later. No additional TikTok test happened.
-
-When work resumes: first verify laptop `git status` and branch tips; then ask whether the user wants a local run or has selected hosting. Do not redo synchronization, do not deploy without confirmation, and do not claim any test after the second-video TikTok HDR confirmation.
-
-
-Give the next agent the file `vague-transcode-migration.zip`. It contains
-everything: this prompt, HANDOFF.md, and the git bundle with every branch
-and commit. (Some chats reject the bare `.bundle` file type — that is why
-it ships inside a zip.)
-
-Restore the repository from the zip:
-```bash
-unzip vague-transcode-migration.zip
-git clone vague-transcode-all-work.bundle vague-transcode
-cd vague-transcode
-git remote set-url origin https://github.com/Willsonraiii/vague-transcode.git
-```
-(Fallback if zip is also rejected: `vague-transcode-bundle.b64.txt` — run
-`base64 -d vague-transcode-bundle.b64.txt > vague-transcode-all-work.bundle`
-first, then clone as above.)
-
-The agent must read this file, `HANDOFF.md`, and `ONLINE-SERVICE-PLAN.md`
-(both are inside the bundle's repository too) before changing anything.
+> **FOR ANY NEW AI AGENT ASSIGNED TO THIS PROJECT**:
+> If the user asks you to inspect or work on this repository, you do not need them to explain the context from scratch. Follow the rules below and consult `AGENTS.md` for full depth.
 
 ---
 
-## 1. Role and rules (unchanged discipline)
+### 1. Essential Context at a Glance
+* **Project**: Obito Studio (`vague-transcode`) — Lossless 60fps/120fps TikTok remuxing & video mastering suite.
+* **Production Host**: Linux system on port `3005` (`server-rtx-online.js`), managed by systemd `obito-studio.service`.
+* **Live Domain**: `https://obitostudio.willsonrai.com.np`
+* **Frontend**: React 18 + Vite SPA located in `web/`. Outputs compiled bundle to `public/`.
+* **Git Branches**: `online-rtx-service` is the primary working branch, mirrored to `main`.
+* **Clone Repo**: Keep `/home/willson/Desktop/vague-infinity-clone` updated in sync.
 
-- Continue the Vague Transcode project. Do not restart history, do not repeat
-  failed approaches (list at the end), do not blindly patch MP4 metadata.
-- Before changing repository or processing code, state the exact change and
-  wait for user confirmation unless the user approved the step.
-- Keep experiments in branches. Never merge experiment PRs into `main`
-  without the user's explicit decision.
-- Validate every MP4 with ffprobe + `ffmpeg -v error -copyts -vsync 0 -i FILE
-  -map 0 -c copy -f null -`.
-- NEVER claim TikTok success without the user confirming it in TikTok Studio.
+---
 
-## 2. Project status in one paragraph
+### 2. User Non-Negotiables & Strict Invariants
+1. **Never use AI-generated / "vibe-coded" aesthetics**:
+   - Strictly NO sparkle emojis (`✨`).
+   - NO purple/blue gradient text or gradient titles.
+   - NO tacky badge pills (like "CREATOR MASTERCLASS").
+   - Follow a professional studio hardware design (Apple / DaVinci Resolve aesthetic: solid white `#ffffff` headers, dark liquid glass, clean slate/cyan accents).
+2. **100% Lossless Remuxing (`-c copy`)**:
+   - Never transcode or recompress pixels unless the user explicitly checks the H.264 fallback checkbox.
+   - Retain 19200 timescale harmonization and color transfer atoms.
+3. **Zero Cloud RAM Spikes**:
+   - Remote TikTok link inspection uses HTTP Range header probing (`bytes=0-1572863`, 1.5MB) to extract stream metadata via `ffprobe` in ~0.05 seconds. Never download full 50MB+ videos into RAM.
+4. **Port Invariant**:
+   - Never touch port `3005` or production files when asked to work on experimental copies (e.g. `part-2` runs on port `3006`).
+5. **Communication Style**:
+   - The user dislikes long, bloated paragraphs with repetitive categories.
+   - Always reply in few, concise, detailed, and understandable bullet points.
+   - Remember instructions across turns without making the user repeat themselves.
 
-The RTXFury-style optimization method is FULLY VALIDATED on two real iPhone
-videos, including TikTok Studio DELIVERING HDR on the output (user-confirmed
-2026-09-29). A complete online backend (upload → job queue → validated
-pipeline → progress → download → auto-delete, access token, two optimization
-options, Docker + deploy guide) is BUILT AND TESTED in a sandbox but NOT yet
-synced to the user's laptop/GitHub and NOT yet deployed. The next agent's
-first job is the sync (section 5), then deployment (section 7).
+---
 
-### EXACT timeline of the end of the last session (continuation start point)
-
-1. User confirmed the SECOND video worked in TikTok ("yeah worked").
-2. User said: "now work for backend until come back keep working" and LEFT.
-3. The agent worked ALONE and completed: backend v2 (access token, progress,
-   cancel, timeout, Dockerfile.online, docker-compose.yml, DEPLOY.md), then
-   the two optimization options (hdr/standard — requested by the user in a
-   short message during that period), then the migration docs.
-4. User came back BUT DID NOTHING after that: no files downloaded from the
-   chat, no laptop commands run, no git push, no TikTok test of the new
-   features. The two-option UI has NEVER been seen or used by the user.
-5. Migration package was prepared (this file + the git bundle).
-
-=> CONTINUATION START POINT: exactly at step 4. Everything from step 3 is
-un-synced work that exists only in the git bundle (and the previous chat's
-workspace). Treat the user as having done NOTHING since the second-video
-confirmation; do not assume any sync, push, download, or test happened.
-The user's last personal actions in total were: running the pipeline on two
-real videos and validating both in TikTok Studio, plus answering questions.
-Everything else was agent-side work in the sandbox.
-
-## 3. Where the work lives (CRITICAL — read carefully)
-
-Three copies exist, and they are NOT equal:
-
-| Copy | State |
-|---|---|
-| **git bundle** `vague-transcode-all-work.bundle` (from the previous chat) | ✅ AUTHORITATIVE — all branches, 16 commits ahead of GitHub |
-| Previous chat's workspace `/home/user/vague-transcode` | ✅ same as bundle (source the bundle was built from) |
-| GitHub `Willsonraiii/vague-transcode` | ❌ BEHIND: `main` e3ca2c3, `online-server-lossless` c075f11, `rtx-audio-track-experiment` 6c5002b, `rtx-final-sample-experiment` 6c5002b. None of the 2026-09-29 work is pushed. |
-| User's laptop `/home/willson/Desktop/vague-transcode` | ❌ BEHIND: has the v1 second-AAC tool commit (local, content of ff9a716) and possibly user-made commits of the same files under different messages. Branch `rtx-audio-track-experiment`. |
-
-The bundle is the single source of truth. Its branches:
-- `main` e3ca2c3 (untouched)
-- `online-server-lossless` c075f11 (untouched)
-- `rtx-final-sample-experiment` 6c5002b (untouched)
-- `rtx-audio-track-experiment` 7c0d45b (validated method)
-- `online-rtx-service` 86d70a0 (HEAD of all work: method + backend + docs)
-
-Commit chain on `online-rtx-service` (all 2026-09-29):
-ff9a716 v1 second-AAC tool → 7056364 reference-matched v2 → 2092c92 stbl fix
-→ 7c0d45b drop trailing audio samples → 2bba639 generic pipeline tool →
-f4fa650 stripDV+rebrand (HDR fix) → 98a66ed mvhd v1 unknown duration →
-30814a5 TikTok success + docs preserved → 01abae8 backend v1 docs → 7fda562
-backend v1 (server-rtx-online.js + public/index.html) → 2a1c209 4K/120fps
-verification → 38f72a0 acceptance+bitrate guidance → 33594c2 second-video
-confirmation → 1c34192 backend v2 (token/progress/cancel/timeout/Docker/
-DEPLOY.md) → a10bf3c backend v2 docs → 86d70a0 two optimization options.
-
-In a NEW sandbox the agent can restore everything from the uploaded bundle:
+### 3. Key Commands
 ```bash
-git clone vague-transcode-all-work.bundle vague-transcode
-cd vague-transcode && git remote set-url origin https://github.com/Willsonraiii/vague-transcode.git
-git fetch origin   # GitHub refs visible for comparison; no push credentials
+# Build frontend
+npm --prefix web run build
+
+# Restart production server (runs under user willson with systemd Restart=always)
+kill $(pgrep -f "node server-rtx-online.js")
+
+# Git sync
+git add -A
+git commit -m "<message>"
+git push origin online-rtx-service
+git push origin online-rtx-service:main
 ```
 
-## 4. The validated method (what tools/rtx-pipeline.js does)
-
-One command: `node tools/rtx-pipeline.js INPUT.mp4 OUTPUT.mp4`
-(plus optional `--keep-dv`, `--audio-elst-ms N`, `--filler-count N`).
-
-From any source MP4 (with audio, fps>30, video timescale divides 19200):
-1. `lib/remux.js` faststartRemux: moov to front, video timescale → 19200,
-   chunk offsets rewritten, `stripDV` (Dolby Vision → plain HLG) and
-   `rebrand` (major brand isom) — UNLESS `--keep-dv`.
-2. Timing derived per input: fps→speed (60→x2, 120→x4), video stts scaled,
-   final-sample split (`tools/split-last-stts.js`), video elst duration
-   (ceil to ms, movie timescale 1000) and media_time from first ctts
-   offset × speed, audio elst from source priming × speed (duration =
-   video elst − 8 ms, UNCONFIRMED rule, overridable).
-3. `tools/build-rtx-second-aac.js` (v2, reference-matched): audio stts scaled
-   with final-sample TRIM to the edit end (471×1024 → 470×2048 + 1×512),
-   re-chunked one-sample-per-chunk (last chunk 2), audio elst kept,
-   tkhd/mdhd = edit values; SECOND audio track: plain (NO elst, NO ctts —
-   DTS 0, pts==dts, 2048 durations), SHARES track 1's chunk offsets (no
-   duplicated bytes), fillers appended at EOF outside the declared mdat
-   (count = 9 × audio samples by the 10x rule, payload 0000000400000000,
-   1 tick each), mdhd = edit duration in ticks, sgpd/sbgp kept; mvhd →
-   version 1, 120 bytes, duration 0xFFFFFFFFFFFFFFFF ("unknown" — this is
-   why the file shows no playtime and won't play in phone galleries),
-   udta (creation_time) dropped, next_track_id updated, all offsets shifted.
-
-Why each piece matters (all measured from the real RTXFury reference file):
-- DV→HLG + everything above = TikTok DELIVERED HDR (confirmed).
-- Without DV strip, TikTok did NOT deliver HDR (first test failed).
-- Second track pattern: packets `0,0,2048`, 4710 = 471×10 samples.
-- Reference growth over source: 61,107 bytes (not "0.5 MB" — that earlier
-  observation measures 59.7 KB on this pair).
-
-## 5. FIRST TASK: sync the user's laptop + GitHub from the bundle
-
-The user must download `vague-transcode-all-work.bundle` from the previous
-chat (or the next agent re-creates the bundle after cloning it — content is
-identical). Then ON THE LAPTOP (user is authenticated with GitHub there):
-
-```bash
-cd ~/Desktop/vague-transcode
-git remote add bundle ~/Downloads/vague-transcode-all-work.bundle
-git fetch bundle
-git checkout -B online-rtx-service bundle/online-rtx-service
-git branch -f rtx-audio-track-experiment bundle/rtx-audio-track-experiment
-git push -u origin online-rtx-service
-git push origin rtx-audio-track-experiment
-git remote remove bundle
-```
-
-Notes:
-- The laptop's local v1 commit(s) become redundant (same content exists in
-  the bundle's history under different hashes). If git refuses `branch -f`
-  because the user is ON that branch, checkout the new branch first.
-- Never force-push `main`. `main` is identical in the bundle and on GitHub.
-- After the push: verify on GitHub that `online-rtx-service` tip = 86d70a0.
-
-## 6. The backend (branch online-rtx-service)
-
-Files: `server-rtx-online.js` (Express, port 3005), `public/index.html`
-(mobile UI), `Dockerfile.online`, `docker-compose.yml` (with free-tier
-keepalive container), `.env.example`, `DEPLOY.md` (full Oracle steps),
-`tools/rtx-pipeline.js` (progress markers 5/35/55/70/95/100 + a
-machine-readable `PIPELINE_RESULT {...}` summary line).
-
-API (all /api routes require the token when ACCESS_TOKEN is set — header
-`x-access-token` or `?token=`):
-- `POST /api/jobs` multipart fields `video` (≤600 MB) + `mode`
-  (`hdr` default | `standard`) → `{id}`
-- `GET /api/jobs/:id` → status/progress/stage/mode/result
-- `GET /api/jobs/:id/download` → file, then job dir deleted
-- `DELETE /api/jobs/:id` → cancel running/queued job + cleanup
-- `GET /health`; `GET /` = UI (two option cards, token box, progress,
-  cancel, download button, DV-detection message)
-
-Two optimization options (user-requested 2026-09-29):
-- `hdr` (default, RECOMMENDED): fps+quality bypass + Dolby Vision → HLG.
-  This is the TikTok-validated path.
-- `standard` (`--keep-dv`): bypass only, source HDR signalling untouched.
-  For non-DV sources both modes produce byte-identical output (verified).
-  For DV sources, standard mode is expected to lose the HDR tag on TikTok
-  (matches the one failed test) — still officially UNVALIDATED on TikTok.
-
-Storage policy (implemented): jobs in `./jobs/<32-hex>/`, deleted on
-download; 1 h TTL sweeper; orphaned dirs purged on restart; disk guard
-(needs ~2 GB free); one job at a time (others queue); processing timeout
-30 min (SIGTERM); no shell interpolation anywhere.
-
-Tested in sandbox: full job cycle, 401s, cancellation (queued + running),
-invalid mode fallback, both modes byte-identical on non-DV input, orphan
-cleanup. NOT tested: real 600 MB upload latency, multi-user load.
-
-## 7. Next steps after sync
-
-1. **Deploy** per `DEPLOY.md` (in the repo). Facts verified 2026: Oracle
-   Always Free = VM.Standard.A1.Flex up to 4 ARM OCPU + 24 GB RAM, 200 GB
-   block storage, 10 TB/month egress, credit-card verification (not
-   charged within limits), ~7-day idle reclamation (keepalive included),
-   ARM capacity can be hard to get (try multiple regions). Alternative:
-   any cheap Linux VPS works (Docker image is arch-neutral).
-2. HTTPS with Caddy before real use (token over plain HTTP is readable).
-3. Have the user verify on the phone: upload → progress → download →
-   TikTok Studio, both modes, including a real iPhone DV video.
-4. Optional later: Discord login/real accounts, job history, multiple
-   workers (all listed in ONLINE-SERVICE-PLAN.md "Future optional").
-
-## 8. Open questions / known differences (non-blocking)
-
-- standard mode on a real DV video in TikTok (expected: no HDR tag) — user
-  check pending.
-- Reference track 1 mdhd duration (ours 963072 = stts sum) never confirmed.
-- Reference file is fully re-interleaved (audio packet-per-chunk between
-  video); we preserve the source interleave. Demux-equivalent, cosmetically
-  different; size impact only.
-- The −8 ms audio elst rule and 10× filler rule are from ONE reference
-  file. A second RTXFury reference would confirm (ask the user for one
-  someday).
-- Reference ftyp minor_version 512, encoder tag "RTX Fury Quality Method
-  ... v21.2 [src 60fps x2]" — we do not write an encoder tag.
-- 30 fps sources derive speed x1 (no slowdown) — method targets >30 fps.
-- Sources whose video timescale does not divide 19200 (e.g. 90000) are
-  rejected with a clear error; a real remux path for them is not built.
-- ffprobe still shows format duration 19.983333 for our output (computed
-  from tracks) — same as the reference; only mvhd says unknown.
-
-## 9. Failed approaches — do NOT repeat
-
-- `-itsscale` + one-tick/`00:00` duration patch (worse fps/quality).
-- Browser-only WASM remux claimed as RTXFury-equivalent.
-- `stripEdits:true` (RTXFury keeps edit lists).
-- In-place 4-byte `dby1` replacement (ftyp must be rebuilt/shrunk).
-- Second AAC track WITHOUT full sample tables (stts/stsc/stsz/stco) — a
-  byte-copy of the trak is invalid.
-- ctts composition offset on track 2 (v1 theory — disproven by the real
-  reference dump: track 2 has NO ctts, NO elst).
-- Duplicating the audio payload for track 2 (reference shares offsets).
-- Keeping Dolby Vision when HDR delivery is the goal (TikTok test failed).
-- Trusting the source's video elst media_time (real source had 0; reference
-  uses 1280 = first ctts × speed).
-- Claiming TikTok success without TikTok Studio confirmation.
-
-## 10. Key user-facing facts (keep saying these simply)
-
-- Acceptable input: MP4/MOV, WITH audio, fps above 30, up to 600 MB,
-  4K 120fps max and everything below (tested: 4K120, 4K60, 1080p, 720p).
-- The pipeline is LOSSLESS — output quality = input quality. Recommend the
-  user record at max phone quality (1080p60 HDR 25–35 Mbps; 4K60 45–80 Mbps).
-- 600 MB length caps: ~2.6 min at 30 Mbps, ~2 min at 40 Mbps, ~1.6 min at
-  50 Mbps. Cut length, never lower quality.
-- The optimized file will NOT play normally in the phone gallery and shows
-  no playtime — that is intentional (unknown-duration mvhd), same as
-  RTXFury. TikTok Studio accepts it.
-
-## 11. Handoff rule
-
-At the end of every meaningful session: update `HANDOFF.md` and this prompt
-(they live in the repo AND at the workspace root), commit, rebuild the
-`--all` git bundle, and have the user download it. Record: current branch
-and commit, files changed, commands run, validation results, exact known
-differences, exact next step, uncommitted files. Never leave the next agent
-to infer which branch, file, or experiment is current.
+For complete architectural details, pipelines, and technical references, read [AGENTS.md](file:///home/willson/Desktop/vague-transcode/AGENTS.md).

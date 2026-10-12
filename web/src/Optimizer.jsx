@@ -388,7 +388,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   // Keep the screen awake while this page is actively transferring or processing.
   // Browsers may release the lock when hidden; request it again on return.
   useEffect(() => {
-    const active = phase === 'upload' || phase === 'queued' || phase === 'process' || dl.state === 'loading' || gradeState.loading;
+    const active = phase === 'upload' || phase === 'queued' || phase === 'process' || dl.state === 'loading';
     if (!active || !navigator.wakeLock?.request) return;
     let mounted = true;
     let lock = null;
@@ -411,7 +411,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
       document.removeEventListener('visibilitychange', onVisibility);
       if (lock) void lock.release();
     };
-  }, [phase, dl.state, gradeState.loading]);
+  }, [phase, dl.state]);
 
   const fail = useCallback((msg, askKey = false) => {
     clearInterval(timer.current);

@@ -33,6 +33,22 @@ class ErrorBoundary extends React.Component {
           <p style={{ color: '#94a3b8', maxWidth: '500px', marginBottom: '20px', fontSize: '13px' }}>
             An unexpected error occurred during rendering.
           </p>
+          <div style={{
+            color: '#ff6b81',
+            background: 'rgba(255, 107, 129, 0.1)',
+            border: '1px solid #ff6b81',
+            borderRadius: '6px',
+            padding: '12px',
+            marginBottom: '16px',
+            maxWidth: '680px',
+            width: '100%',
+            wordBreak: 'break-word',
+            textAlign: 'left',
+            fontWeight: 'bold',
+            fontSize: '14px'
+          }}>
+            {String(this.state.error?.name || 'Error')}: {String(this.state.error?.message || this.state.error)}
+          </div>
           <pre style={{
             background: '#10121b',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -41,8 +57,11 @@ class ErrorBoundary extends React.Component {
             fontSize: '12px',
             color: '#fca5a5',
             maxWidth: '680px',
+            width: '100%',
             overflowX: 'auto',
-            textAlign: 'left'
+            textAlign: 'left',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all'
           }}>
             {this.state.error?.stack || String(this.state.error)}
           </pre>

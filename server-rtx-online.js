@@ -211,7 +211,7 @@ function startNextJob() {
   job.startedAt = Date.now();
   console.log(`[job ${job.id}] processing started (${job.inputBytes} bytes, mode ${job.mode}${h264Label})`);
 
-  const workerArgs = ['--expose-gc', '--max-old-space-size=48', PIPELINE_TOOL, job.inputPath, job.outputPath];
+  const workerArgs = ['--expose-gc', '--max-old-space-size=96', PIPELINE_TOOL, job.inputPath, job.outputPath];
   if (job.mode === 'standard') workerArgs.push('--keep-dv');
   if (job.ensureH264) workerArgs.push('--ensure-h264');
 

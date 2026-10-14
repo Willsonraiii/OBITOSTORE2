@@ -30,7 +30,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamFaststartRemux } from '../lib/stream-remux.js';
 import { getPresetById } from '../lib/color-presets.js';
-import { patchTimecodeTrack } from '../lib/timecode-injector.js';
 
 const SECOND_AAC_TOOL = new URL('./build-rtx-second-aac.js', import.meta.url);
 const SPLIT_LAST_STTS_TOOL = new URL('./split-last-stts.js', import.meta.url);
@@ -610,15 +609,6 @@ process.stdout.write(run.stdout || '');
 if (run.status !== 0) {
   process.stderr.write(run.stderr || '');
   throw new Error(`tools/build-rtx-second-aac.js failed with status ${run.status}.`);
-}
-
-// Inject professional broadcast timecode track (tmcd + tref)
-try {
-  const finalBuf = await readFile(outputPath);
-  const withTmcd = patchTimecodeTrack(finalBuf);
-  await writeFile(outputPath, withTmcd);
-} catch (tmcdErr) {
-  console.warn('[pipeline] tmcd injection bypassed:', tmcdErr?.message || tmcdErr);
 }
 
 if (!keepTemp) {

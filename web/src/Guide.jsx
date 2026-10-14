@@ -10,7 +10,7 @@ export default function Guide({ onSwitchToOptimizer }) {
       desc: 'Export at your choice of resolution (1080p, 2K, or 4K 9:16 portrait).',
       rules: [
         { label: 'Recommended Bitrate', val: '~30 Mbps (30,000 kbps) for clean master detail. Higher or lower bitrates are also 100% accepted.' },
-        { label: 'Frame Rate', val: '60 fps or 120 fps native fluidity. Obito Studio remuxes non-standard container timescales to 19200 multiples.' },
+        { label: 'Frame Rate', val: '60 fps or 120 fps native fluidity. Obito Studio restructures timing headers to satisfy mobile transcode ingestion gates.' },
         { label: 'Color & HDR', val: 'Turn on HDR (HLG / Rec.2020) in your editor if you desire punchy dynamic range in the TikTok feed.' }
       ]
     },
@@ -34,7 +34,7 @@ export default function Guide({ onSwitchToOptimizer }) {
       desc: 'Choose your preferred mode on Obito Studio and let the stream-remux engine package the container atoms.',
       rules: [
         { label: 'Presets', val: 'Select "FPS + Quality + HDR" for iPhone HDR/HLG or "FPS + Quality" for standard SDR.' },
-        { label: 'Under the Hood', val: 'Zero pixel re-encoding. Strips udta camera tracking fingerprints, harmonizes 19200 timescale, and injects broadcast timecode.' }
+        { label: 'Under the Hood', val: 'Zero pixel re-encoding. Strips udta camera tracking fingerprints, aligns container clock headers, and injects broadcast timecode.' }
       ]
     },
     {
@@ -45,7 +45,7 @@ export default function Guide({ onSwitchToOptimizer }) {
       desc: 'Once your optimized video is ready, open your mobile or desktop browser and navigate to the TikTok Desktop/Web upload page (tiktok.com/upload).',
       rules: [
         { label: 'Direct Public Post', val: 'Publish directly as Public. Avoid saving as a "Private Draft" first, which triggers TikTok\'s aggressive secondary re-compression pass.' },
-        { label: 'Desktop Web Uploader', val: 'The web uploader respects the 19200 timescale and bypasses mobile app client-side compression rungs.' }
+        { label: 'Desktop Web Uploader', val: 'The web uploader respects high-framerate container atoms and bypasses mobile app client-side compression rungs.' }
       ]
     }
   ];

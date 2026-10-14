@@ -45,7 +45,7 @@ function parseProbe(probe, linkUser, page) {
     ['Duration', fmtDur(dur)],
     ['File Size', size ? fmtBytes(size) : '—'],
     ['Bitrate', fmtRate(bitRate)],
-    ['Timescale', ts ? `${ts} (÷19200: ${19200 % ts === 0 ? '✓' : '✗'})` : '—'],
+    ['Timescale Clock', ts ? `${ts} Hz` : '—'],
     ['Container', (f.format_name || '—').split(',')[0]]
   ];
 
@@ -65,7 +65,7 @@ function parseProbe(probe, linkUser, page) {
       ['Audio Stream Intact', audio.length > 0],
       ['High Frame Rate (>30 fps)', fps > 30],
       ['Under 600 MB File Size', size > 0 && size <= MAX_BYTES],
-      ['Timescale Compatible (÷19200)', ts > 0 && 19200 % ts === 0],
+      ['Container Clock Compatible', ts > 0 && (ts % 60 === 0 || 19200 % ts === 0)],
       ['Supported Container (MP4/MOV)', /mp4|mov|quicktime|m4v/i.test(f.format_name || 'mp4')]
     ],
     hdr,
@@ -422,7 +422,7 @@ export default function Inspector({ apiKey }) {
               : report.hdr !== 'SDR'
               ? 'Native HDR Detected — Use FPS + Quality + HDR mode to retain dynamic range in TikTok Studio.'
               : report.checks.length
-              ? 'SDR Source — FPS + Quality mode will preserve 60/120fps smoothness and 19200 timescale.'
+              ? 'SDR Source — FPS + Quality mode will lock 60/120fps motion fluidity and container clock synchronization.'
               : 'TikTok video information retrieved.'}
           </div>
 

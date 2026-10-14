@@ -7,7 +7,7 @@ export const COLOR_PRESETS = [
     name: 'Original',
     badge: '100% Lossless',
     shortDesc: 'Bit-for-bit stream copy · zero quality loss',
-    accentColor: '#38bdf8', // sky blue
+    accentColor: '#ffffff', // titanium silver
     ffmpegFilter: null,
     cssFilter: 'none',
   },

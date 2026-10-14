@@ -70,8 +70,8 @@ class ErrorBoundary extends React.Component {
             style={{
               marginTop: '20px',
               padding: '10px 20px',
-              background: '#06b6d4',
-              color: '#042f2e',
+              background: '#ffffff',
+              color: '#090a0f',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',

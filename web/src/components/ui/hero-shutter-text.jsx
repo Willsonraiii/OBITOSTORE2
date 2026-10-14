@@ -15,9 +15,9 @@ export function ShutterText({
   className = "",
   textClassName = "",
   textColor = "#ffffff",
-  topSliceColor = "#38bdf8",
+  topSliceColor = "#ffffff",
   midSliceColor = "#cbd5e1",
-  botSliceColor = "#38bdf8",
+  botSliceColor = "#94a3b8",
   charWrapClassName = "",
 }) {
   const words = String(text).split(" ");
@@ -248,9 +248,9 @@ export default function HeroText({
           triggerKey={count}
           textClassName="text-[clamp(1.75rem,5vw,3.75rem)] font-black tracking-tight"
           textColor="#ffffff"
-          topSliceColor="#38bdf8"
+          topSliceColor="#ffffff"
           midSliceColor="#cbd5e1"
-          botSliceColor="#38bdf8"
+          botSliceColor="#94a3b8"
         />
       </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   LightningIcon, InspectIcon, BookOpenIcon,
-  DashboardIcon, LayersIcon, FpsIcon, HdrIcon, ShieldIcon
+  DashboardIcon, ShieldIcon, CheckIcon
 } from './icons.jsx';
 
 export default function Dashboard({ onSwitchTab }) {
@@ -35,56 +35,91 @@ export default function Dashboard({ onSwitchTab }) {
 
   return (
     <div className="studio-dashboard">
-      {/* ---------- Dashboard Section Header ---------- */}
-      <div className="section-head">
-        <div className="head-badge">
-          <DashboardIcon width={14} height={14} />
-          <span>STUDIO CONTROL DASHBOARD</span>
+      {/* ---------- Hero Master Command Center ---------- */}
+      <div className="dash-hero-card">
+        <div className="dash-hero-top">
+          <div className="dash-hero-brand">
+            <span className="dash-hero-badge">STUDIO MASTER CONTROL</span>
+            <span className="dash-beta-pill">BETA</span>
+          </div>
+          <div className={`dash-engine-status ${queueStatus.busy ? 'busy' : 'ready'}`}>
+            <span className="dash-status-dot" />
+            <span className="dash-status-text">
+              {loading
+                ? 'INITIALIZING…'
+                : queueStatus.busy
+                ? 'MASTER ENGINE BUSY'
+                : 'ENGINE STANDBY · READY'}
+            </span>
+          </div>
         </div>
-        <h2 className="head-title">Engine Telemetry &amp; System Monitor</h2>
-        <p className="head-sub">
-          Lossless container stream-copy pipeline, timescale synchronization engine, and master ingestion specs.
-        </p>
+
+        <div className="dash-hero-content">
+          <h1 className="dash-hero-title">Obito Video Mastering Suite</h1>
+          <p className="dash-hero-subtitle">
+            Bit-for-bit lossless container mastering. Preserve native 60fps and 120fps motion fluidity, 10-bit HDR wide color gamut, and master export bitrates across mobile video platforms.
+          </p>
+        </div>
+
+        <div className="dash-hero-actions">
+          <button
+            type="button"
+            className="btn-dash-hero primary"
+            onClick={() => onSwitchTab('optimizer')}
+          >
+            <LightningIcon width={18} height={18} />
+            <span>Open Lossless Optimizer</span>
+            <span className="dash-arrow">→</span>
+          </button>
+          <button
+            type="button"
+            className="btn-dash-hero secondary"
+            onClick={() => onSwitchTab('inspect')}
+          >
+            <InspectIcon width={18} height={18} />
+            <span>Audit Video Container</span>
+          </button>
+        </div>
       </div>
 
-      {/* ---------- Telemetry Stats Row ---------- */}
+      {/* ---------- Live Hardware Telemetry Matrix ---------- */}
       <div className="dash-telemetry-grid">
         <div className="dash-stat-card">
           <div className="dash-stat-header">
-            <span className="dash-stat-label">REMUX PIPELINE</span>
+            <span className="dash-stat-label">MASTER PIPELINE</span>
             <span className={`dash-pulse-dot ${queueStatus.busy ? 'busy' : 'active'}`} />
           </div>
           <div className="dash-stat-val">
-            {loading ? 'SYNCING…' : queueStatus.busy ? 'OPTIMIZING' : 'STANDBY · READY'}
+            {loading ? 'SYNCING…' : queueStatus.busy ? 'OPTIMIZING' : 'STREAM COPY'}
           </div>
           <div className="dash-stat-desc">
             {queueStatus.busy && queueStatus.activeJob?.stage
-              ? `Active stage: ${queueStatus.activeJob.stage}`
-              : 'Pure lossless stream copy (-c copy)'}
+              ? `Processing: ${queueStatus.activeJob.stage}`
+              : 'Pure lossless passthrough · Zero generation loss'}
           </div>
         </div>
 
         <div className="dash-stat-card">
           <div className="dash-stat-header">
-            <span className="dash-stat-label">TIMESCALE CLOCK</span>
+            <span className="dash-stat-label">MOTION PRESERVATION</span>
             <span className="dash-pulse-dot active" />
           </div>
-          <div className="dash-stat-val">19,200 Hz</div>
-          <div className="dash-stat-desc">Target 60.00 &amp; 120.00 FPS TikTok sync</div>
+          <div className="dash-stat-val">60 &amp; 120 FPS</div>
+          <div className="dash-stat-desc">Locks native frame rates; defeats platform 30fps drop</div>
         </div>
 
-        <div className="dash-stat-card">
+        <div className="dash-stat-header-card dash-stat-card">
           <div className="dash-stat-header">
-            <span className="dash-stat-label">COLOR PIPELINE</span>
+            <span className="dash-stat-label">COLOR FIDELITY</span>
             <span className="dash-pulse-dot active" />
           </div>
-          <div className="dash-stat-val">DOVI PROFILE 8.4</div>
-          <div className="dash-stat-desc">Dynamic RPU → Native Rec.2020 HLG demux</div>
+          <div className="dash-stat-val">10-BIT HDR &amp; DOVI</div>
+          <div className="dash-stat-desc">Native Wide Color Gamut &amp; peak dynamic range intact</div>
         </div>
 
         <div className="dash-stat-card">
           <div className="dash-stat-header">
-            <span className="dash-stat-label">ENGINE QUEUE</span>
+            <span className="dash-stat-label">SERVER QUEUE</span>
             <span className={`dash-pulse-dot ${queueStatus.queuedCount > 0 ? 'busy' : 'active'}`} />
           </div>
           <div className="dash-stat-val">
@@ -92,146 +127,116 @@ export default function Dashboard({ onSwitchTab }) {
           </div>
           <div className="dash-stat-desc">
             {queueStatus.queuedCount > 0
-              ? 'Sequential NVMe execution in line'
-              : 'Zero wait · Stream-to-disk architecture'}
+              ? 'Sequential NVMe execution safely held in line'
+              : 'Direct NVMe streaming · Zero wait time'}
           </div>
         </div>
       </div>
 
-      {/* ---------- Quick Launch Workflow Cards ---------- */}
+      {/* ---------- Mastering Workflows ---------- */}
       <div className="dash-workflows-section">
-        <h3 className="dash-section-title">Mastering Workflows</h3>
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Mastering Workflows</h2>
+          <span className="dash-section-sub">Direct studio actions accessible via the bottom control dock</span>
+        </div>
+
         <div className="dash-workflows-grid">
-          <div className="dash-workflow-card">
+          <div className="dash-workflow-card featured" onClick={() => onSwitchTab('optimizer')}>
             <div className="dash-wf-top">
-              <div className="dash-wf-icon-wrap">
-                <LightningIcon width={22} height={22} />
+              <div className="dash-wf-icon-wrap primary">
+                <LightningIcon width={24} height={24} />
               </div>
-              <span className="dash-wf-tag">CORE PIPELINE</span>
+              <span className="dash-wf-tag">PRIMARY WORKFLOW</span>
             </div>
-            <h4 className="dash-wf-title">Lossless TikTok Optimizer</h4>
+            <h3 className="dash-wf-title">Lossless Video Optimizer</h3>
             <p className="dash-wf-desc">
-              Harmonize timescale containers to 19200 and demux Apple Dolby Vision dynamic metadata.
-              Preserves 100% of bit-for-bit master quality with zero generation transcoding loss.
+              Re-structure video containers so mobile feeds acknowledge native 60fps fluidity and full HDR peak nits. Never re-compresses or softens video packets.
             </p>
-            <div className="dash-wf-action">
-              <button
-                type="button"
-                className="btn-dash-action primary"
-                onClick={() => onSwitchTab('optimizer')}
-              >
-                <span>Launch Optimizer</span>
-                <span className="dash-btn-arrow">→</span>
-              </button>
+            <div className="dash-wf-footer">
+              <span className="dash-wf-cta">Launch Optimizer</span>
+              <span className="dash-wf-arrow">→</span>
             </div>
           </div>
 
-          <div className="dash-workflow-card">
+          <div className="dash-workflow-card" onClick={() => onSwitchTab('inspect')}>
             <div className="dash-wf-top">
               <div className="dash-wf-icon-wrap">
-                <InspectIcon width={22} height={22} />
+                <InspectIcon width={24} height={24} />
               </div>
-              <span className="dash-wf-tag">CONTAINER AUDIT</span>
+              <span className="dash-wf-tag">DIAGNOSTICS</span>
             </div>
-            <h4 className="dash-wf-title">TikTok Codec Inspector</h4>
+            <h3 className="dash-wf-title">Container Codec Inspector</h3>
             <p className="dash-wf-desc">
-              Inspect video box atoms, container timescales, color primaries, and real FPS. Probe either local
-              master video files or live published TikTok video URLs before distributing.
+              Audit box atoms, timescale clocks, real framerates, and color matrices. Probes local master video files or live published TikTok video links.
             </p>
-            <div className="dash-wf-action">
-              <button
-                type="button"
-                className="btn-dash-action"
-                onClick={() => onSwitchTab('inspect')}
-              >
-                <span>Inspect Video</span>
-                <span className="dash-btn-arrow">→</span>
-              </button>
+            <div className="dash-wf-footer">
+              <span className="dash-wf-cta">Audit Video</span>
+              <span className="dash-wf-arrow">→</span>
             </div>
           </div>
 
-          <div className="dash-workflow-card">
+          <div className="dash-workflow-card" onClick={() => onSwitchTab('guide')}>
             <div className="dash-wf-top">
               <div className="dash-wf-icon-wrap">
-                <BookOpenIcon width={22} height={22} />
+                <BookOpenIcon width={24} height={24} />
               </div>
-              <span className="dash-wf-tag">EXPORT PRESETS</span>
+              <span className="dash-wf-tag">EXPORT PROTOCOLS</span>
             </div>
-            <h4 className="dash-wf-title">Studio Master Guide</h4>
+            <h3 className="dash-wf-title">Studio Master Guide</h3>
             <p className="dash-wf-desc">
-              Step-by-step master export settings for Apple iPhone HDR, DaVinci Resolve Studio, and Adobe
-              Premiere Pro engineered to bypass TikTok&apos;s automatic 30fps downgrade pass.
+              Step-by-step master export specifications for DaVinci Resolve Studio, Adobe Premiere Pro, and Apple iPhone HDR footage for pristine playback.
             </p>
-            <div className="dash-wf-action">
-              <button
-                type="button"
-                className="btn-dash-action"
-                onClick={() => onSwitchTab('guide')}
-              >
-                <span>Read Master Guide</span>
-                <span className="dash-btn-arrow">→</span>
-              </button>
+            <div className="dash-wf-footer">
+              <span className="dash-wf-cta">Read Protocols</span>
+              <span className="dash-wf-arrow">→</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ---------- TikTok Ingestion Master Spec Matrix ---------- */}
-      <div className="dash-matrix-section">
-        <div className="dash-matrix-header">
-          <h3 className="dash-section-title">TikTok Ingestion Spec Matrix</h3>
-          <span className="dash-matrix-sub">Verified standards required by TikTok&apos;s mobile transcode gate</span>
+      {/* ---------- Studio Quality Pillars (No Leaked Engineering Formulas) ---------- */}
+      <div className="dash-pillars-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Master Quality Commitments</h2>
+          <span className="dash-section-sub">Engineered for creators who refuse generational compression loss</span>
         </div>
 
-        <div className="dash-matrix-table-wrap">
-          <table className="dash-matrix-table">
-            <thead>
-              <tr>
-                <th>CONTAINER PARAMETER</th>
-                <th>OBITO MASTER SPEC</th>
-                <th>TIKTOK INGESTION RULE</th>
-                <th>INGESTION BEHAVIOR</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong className="param-name">Video Timescale</strong></td>
-                <td><code className="spec-val">19200 / 15360</code></td>
-                <td>Exact integer frame multiple</td>
-                <td><span className="spec-status ok">Full 60fps &amp; 120fps fluid playback</span></td>
-              </tr>
-              <tr>
-                <td><strong className="param-name">Video Compression</strong></td>
-                <td><code className="spec-val">-c copy (Stream Copy)</code></td>
-                <td>Master packet preservation</td>
-                <td><span className="spec-status ok">Zero generational sharpness loss</span></td>
-              </tr>
-              <tr>
-                <td><strong className="param-name">Apple Dolby Vision</strong></td>
-                <td><code className="spec-val">Profile 8.4 → HLG 2020</code></td>
-                <td>Strip unhandled dynamic RPU</td>
-                <td><span className="spec-status ok">Peak brightness preserved; no SDR blowout</span></td>
-              </tr>
-              <tr>
-                <td><strong className="param-name">Audio Clock</strong></td>
-                <td><code className="spec-val">19,200 container ticks</code></td>
-                <td>Video clock synchronization</td>
-                <td><span className="spec-status ok">Eliminates audio drift &amp; end-frame cutoffs</span></td>
-              </tr>
-              <tr>
-                <td><strong className="param-name">Atom Structure</strong></td>
-                <td><code className="spec-val">Faststart moov atom</code></td>
-                <td>Container header at file start</td>
-                <td><span className="spec-status ok">Instant mobile streaming buffer</span></td>
-              </tr>
-              <tr>
-                <td><strong className="param-name">Resolution Limit</strong></td>
-                <td><code className="spec-val">1080×1920 / 2160×3840</code></td>
-                <td>Portrait 9:16 vertical standard</td>
-                <td><span className="spec-status ok">Native fullscreen viewport fill</span></td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="dash-pillars-grid">
+          <div className="dash-pillar-item">
+            <div className="dash-pillar-top">
+              <div className="dash-pillar-check">
+                <CheckIcon width={16} height={16} strokeWidth={2.5} />
+              </div>
+              <h4 className="dash-pillar-name">100% Bit-for-Bit Stream Copy</h4>
+            </div>
+            <p className="dash-pillar-desc">
+              Obito Studio never decompresses or re-encodes frames. Compressed video and audio packets pass through completely intact, ensuring 0% loss of master sharpness.
+            </p>
+          </div>
+
+          <div className="dash-pillar-item">
+            <div className="dash-pillar-top">
+              <div className="dash-pillar-check">
+                <CheckIcon width={16} height={16} strokeWidth={2.5} />
+              </div>
+              <h4 className="dash-pillar-name">Full High-FPS Fluidity Lock</h4>
+            </div>
+            <p className="dash-pillar-desc">
+              Container metadata is structured to satisfy platform ingestion rules, eliminating the automatic 30fps downsampling pass applied to standard uploads.
+            </p>
+          </div>
+
+          <div className="dash-pillar-item">
+            <div className="dash-pillar-top">
+              <div className="dash-pillar-check">
+                <CheckIcon width={16} height={16} strokeWidth={2.5} />
+              </div>
+              <h4 className="dash-pillar-name">Sovereign On-Device Security</h4>
+            </div>
+            <p className="dash-pillar-desc">
+              Your masters never touch public cloud repositories. Operations run locally on NVMe storage, and files are automatically purged immediately after download.
+            </p>
+          </div>
         </div>
       </div>
     </div>

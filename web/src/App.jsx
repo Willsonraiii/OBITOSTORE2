@@ -30,9 +30,9 @@ const TABS = [
 const ARCH_PILLARS = [
   {
     Icon: FpsIcon,
-    title: '19200 Timescale Harmonization',
-    subtitle: '60fps & 120fps TikTok Ingestion',
-    desc: 'TikTok\'s transcode engine aggressively enforces specific timescale multiples (19200, 15360). When footage arrives with non-standard timescales (e.g. 60000/1001 or 1000/1), TikTok\'s ingestion pipeline flattens playback to 30fps. Obito Studio remuxes container atoms to exact 19200 fractions without touching video frames.'
+    title: 'Container Timing Architecture',
+    subtitle: '60fps & 120fps TikTok Ingestion Lock',
+    desc: 'Standard video transcode engines enforce rigid timing heuristics. When high-frame-rate footage arrives with non-standard container clocks, platform gates downsample playback to 30fps. Obito Studio restructures container atom clocks to ensure seamless high-framerate recognition without touching compressed video frames.'
   },
   {
     Icon: LayersIcon,
@@ -68,7 +68,7 @@ const WORKFLOW_STEPS = [
   {
     step: '03',
     name: 'Publish via TikTok Studio',
-    detail: 'Download the verified master MP4 and publish directly through TikTok Studio (Desktop or Web). TikTok acknowledges the 19200 timescale and serves high-bitrate 60fps & HDR.'
+    detail: 'Download the verified master MP4 and publish directly through TikTok Studio (Desktop or Web). TikTok acknowledges the native high-framerate container and delivers full 60fps & HDR playback.'
   }
 ];
 
@@ -117,13 +117,13 @@ const HERO_MESSAGES = [
     sub: 'Original 10-bit color gamut intact for crystal-clear smartphone playback.'
   },
   {
-    title: '19200 TIMESCALE REMUX',
-    sub: 'Timescale container structure engineered specifically for TikTok ingestion.'
+    title: 'PRO HARDWARE REMUX',
+    sub: 'Engineered container architecture for native high frame-rate mobile playback.'
   }
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('optimizer'); // optimizer | inspect | library | architecture | faq
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | guide | optimizer | inspect | specs
   const [apiKey, setApiKey] = useState(() => lsGet('obitoKey') || '');
   const [busy, setBusy] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -380,7 +380,7 @@ export default function App() {
           <div
             className="studio-brand brand-stacked"
             onClick={() => {
-              setActiveTab('optimizer');
+              setActiveTab('dashboard');
             }}
             title="OBITO STUDIO"
           >
@@ -415,6 +415,7 @@ export default function App() {
               />
             </div>
           </div>
+          <span className="brand-beta-tag">BETA</span>
         </div>
 
         {/* Center Segment: Frameless 3D Living Monogram (At Mid) */}
@@ -426,7 +427,7 @@ export default function App() {
               transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
             }}
             onClick={() => {
-              setActiveTab('optimizer');
+              setActiveTab('dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             aria-label="OBITO STUDIO"
@@ -568,9 +569,9 @@ export default function App() {
                   triggerKey={heroMsgIndex}
                   textClassName="text-[clamp(1.4rem,3.8vw,3.25rem)] font-extrabold tracking-tight"
                   textColor="#ffffff"
-                  topSliceColor="#38bdf8"
+                  topSliceColor="#ffffff"
                   midSliceColor="#cbd5e1"
-                  botSliceColor="#818cf8"
+                  botSliceColor="#94a3b8"
                 />
               </h1>
               <p className="hero-subline text-white/70 text-xs sm:text-sm md:text-base max-w-xl mx-auto mb-3 transition-opacity duration-300">
@@ -806,10 +807,10 @@ export default function App() {
       <footer className="studio-footer">
         <div className="footer-left">
           <Logo size={20} />
-          <span>OBITO STUDIO · High-Performance Lossless Video Mastering Suite</span>
+          <span>OBITO STUDIO · BETA · High-Performance Lossless Video Mastering Suite</span>
         </div>
         <div className="footer-right">
-          <span>Bit-for-Bit Stream Copy · 19200 Timescale · DOVI Profile 8.4</span>
+          <span>Bit-for-Bit Stream Copy · Multi-Platform Native Fluidity</span>
         </div>
       </footer>
 

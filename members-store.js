@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename, copyFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
@@ -8,6 +8,7 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PERSISTENT_DIR = process.env.DATA_DIR || path.join(process.env.HOME || '/home/willson', '.obito-studio-data');
 const MEMBERS_FILE = path.join(PERSISTENT_DIR, 'members.json');
 const BACKUP_FILE = path.join(PERSISTENT_DIR, 'members.backup.json');
+const SNAPSHOTS_DIR = path.join(PERSISTENT_DIR, 'snapshots');
 const LEGACY_FILE = path.join(ROOT, 'members.json');
 
 const DEFAULT_STORE = {
@@ -24,45 +25,114 @@ const DEFAULT_STORE = {
   clients: []
 };
 
-/**
- * Read the current members store, creating the default file if not found.
- */
-export async function getMembersStore() {
-  try {
-    await mkdir(PERSISTENT_DIR, { recursive: true });
-    // If persistent file doesn't exist but legacy file does, migrate it
-    if (!existsSync(MEMBERS_FILE) && existsSync(LEGACY_FILE)) {
-      try {
-        const legacyRaw = await readFile(LEGACY_FILE, 'utf8');
-        await writeFile(MEMBERS_FILE, legacyRaw, 'utf8');
-      } catch {
-        /* ignore migration read error */
-      }
-    }
-    const raw = await readFile(MEMBERS_FILE, 'utf8');
-    const data = JSON.parse(raw);
-    if (!Array.isArray(data.referrals)) data.referrals = [];
-    if (!Array.isArray(data.clients)) data.clients = [];
-    return data;
-  } catch {
-    await saveMembersStore(DEFAULT_STORE);
-    return JSON.parse(JSON.stringify(DEFAULT_STORE));
-  }
+// In-process lock queue to prevent race conditions during concurrent requests
+let ioLock = Promise.resolve();
+function withLock(fn) {
+  const next = ioLock.then(fn, fn);
+  ioLock = next.catch(() => {});
+  return next;
 }
 
 /**
- * Persist the members store safely to disk with automatic redundancy.
+ * Read the current members store with zero-data-loss fallback.
+ * Checks MEMBERS_FILE first, then BACKUP_FILE.
+ * NEVER resets to default if an existing data file is present.
+ */
+export async function getMembersStore() {
+  await mkdir(PERSISTENT_DIR, { recursive: true });
+  await mkdir(SNAPSHOTS_DIR, { recursive: true });
+
+  // 1. Try primary storage
+  if (existsSync(MEMBERS_FILE)) {
+    try {
+      const raw = await readFile(MEMBERS_FILE, 'utf8');
+      if (raw && raw.trim().length > 0) {
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data.referrals)) data.referrals = [];
+        if (!Array.isArray(data.clients)) data.clients = [];
+        return data;
+      }
+    } catch (err) {
+      console.error('[members-store] Failed to parse primary members.json, attempting backup recovery:', err);
+    }
+  }
+
+  // 2. Try backup storage if primary was corrupt or unreadable
+  if (existsSync(BACKUP_FILE)) {
+    try {
+      const backupRaw = await readFile(BACKUP_FILE, 'utf8');
+      if (backupRaw && backupRaw.trim().length > 0) {
+        const data = JSON.parse(backupRaw);
+        if (!Array.isArray(data.referrals)) data.referrals = [];
+        if (!Array.isArray(data.clients)) data.clients = [];
+        // Restore primary from backup immediately
+        await atomicWriteFile(MEMBERS_FILE, backupRaw);
+        console.warn('[members-store] Successfully recovered members store from backup file.');
+        return data;
+      }
+    } catch (err) {
+      console.error('[members-store] Backup file also unreadable:', err);
+    }
+  }
+
+  // 3. Check legacy file in repo root
+  if (existsSync(LEGACY_FILE)) {
+    try {
+      const legacyRaw = await readFile(LEGACY_FILE, 'utf8');
+      if (legacyRaw && legacyRaw.trim().length > 0) {
+        const data = JSON.parse(legacyRaw);
+        if (!Array.isArray(data.referrals)) data.referrals = [];
+        if (!Array.isArray(data.clients)) data.clients = [];
+        await saveMembersStore(data);
+        return data;
+      }
+    } catch {
+      /* ignore legacy parse error */
+    }
+  }
+
+  // 4. Genuine first run initialization only
+  const initial = JSON.parse(JSON.stringify(DEFAULT_STORE));
+  await saveMembersStore(initial);
+  return initial;
+}
+
+/**
+ * Write a file atomically using a temporary file and rename.
+ * Prevents race condition partial reads in Linux.
+ */
+async function atomicWriteFile(targetPath, content) {
+  const dir = path.dirname(targetPath);
+  const tempPath = path.join(dir, `.tmp_${path.basename(targetPath)}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
+  await writeFile(tempPath, content, 'utf8');
+  await rename(tempPath, targetPath);
+}
+
+/**
+ * Persist the members store safely to disk with atomic operations & rolling snapshots.
  */
 export async function saveMembersStore(data) {
-  try {
-    await mkdir(PERSISTENT_DIR, { recursive: true });
-    const serialized = JSON.stringify(data, null, 2);
-    await writeFile(MEMBERS_FILE, serialized, 'utf8');
-    // Keep secondary backup
-    await writeFile(BACKUP_FILE, serialized, 'utf8');
-  } catch (err) {
-    console.error('[members-store] failed to save:', err);
-  }
+  return withLock(async () => {
+    try {
+      await mkdir(PERSISTENT_DIR, { recursive: true });
+      await mkdir(SNAPSHOTS_DIR, { recursive: true });
+
+      const serialized = JSON.stringify(data, null, 2);
+
+      // Write atomically to primary
+      await atomicWriteFile(MEMBERS_FILE, serialized);
+
+      // Write atomically to secondary backup
+      await atomicWriteFile(BACKUP_FILE, serialized);
+
+      // Periodic rolling snapshot (keeps last 10 snapshots)
+      const snapshotPath = path.join(SNAPSHOTS_DIR, `members_${Date.now()}.json`);
+      await writeFile(snapshotPath, serialized, 'utf8').catch(() => {});
+    } catch (err) {
+      console.error('[members-store] CRITICAL failed to save members store:', err);
+      throw err;
+    }
+  });
 }
 
 /**

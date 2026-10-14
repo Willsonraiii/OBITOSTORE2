@@ -130,6 +130,7 @@ button {
 }
 
 .topbar-left {
+  grid-column: 1;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -302,6 +303,7 @@ button {
 
 /* Center Logo Segment */
 .topbar-center {
+  grid-column: 2;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -390,6 +392,7 @@ button {
 
 /* Topbar Right */
 .topbar-right {
+  grid-column: 3;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2944,10 +2947,16 @@ button {
     display: none !important;
   }
   .brand-beta-tag {
-    font-size: 7.5px;
-    padding: 1px 5px;
-    margin-left: 4px;
-    letter-spacing: 0.05em;
+    font-size: 7px;
+    padding: 1px 4.5px;
+    margin-left: 2px;
+    letter-spacing: 0.04em;
+  }
+  .brand-obito p {
+    font-size: 12px !important;
+  }
+  .brand-studio p {
+    font-size: 8.5px !important;
   }
   .topbar-left {
     gap: 4px;
@@ -2983,7 +2992,7 @@ button {
     margin: 0 auto;
   }
   .studio-workspace {
-    padding: 10px 14px calc(76px + env(safe-area-inset-bottom, 12px));
+    padding: 10px 14px calc(120px + env(safe-area-inset-bottom, 20px));
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -4337,7 +4346,7 @@ button {
 
 @media (max-width: 640px) {
   .guide-view {
-    padding: 12px 10px 80px;
+    padding: 12px 10px calc(120px + env(safe-area-inset-bottom, 20px));
     gap: 24px;
   }
   .guide-step-card {
@@ -4385,7 +4394,8 @@ button {
 }
 
 .topbar-center.is-empty {
-  display: none;
+  min-width: 0;
+  pointer-events: none;
 }
 
 .studio-dashboard {
@@ -4847,8 +4857,7 @@ button {
   height: 7px;
   border-radius: 999px;
   background: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.9);
-  animation: pulseAmber 1.6s infinite ease-in-out;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
 }
 
 .queue-busy-badge {

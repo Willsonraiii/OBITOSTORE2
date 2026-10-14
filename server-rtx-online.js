@@ -280,8 +280,8 @@ function startNextJob() {
         try { job.result = JSON.parse(line.slice('PIPELINE_RESULT '.length)); } catch {}
       }
       logLine(job, '[obito] repackaged — copy test & probe…');
-      job.probeOut = summarizeProbe(probeFile(job.outputPath));
-      logLine(job, `[obito] done ✓ output ${job.probeOut ? job.probeOut.w + 'x' + job.probeOut.h + ' · ' + job.probeOut.fps + ' fps' : ''}${job.probeOut?.dv ? ' · DV stripped' : ''}`);
+      const hdrTag = job.probeIn?.dv && !job.probeOut?.dv ? ' · DV normalized to HLG HDR' : job.probeOut?.transfer === 'arib-std-b67' ? ' · HLG HDR' : job.probeOut?.transfer === 'smpte2084' ? ' · HDR10 / PQ' : '';
+      logLine(job, `[obito] done ✓ output ${job.probeOut ? job.probeOut.w + 'x' + job.probeOut.h + ' · ' + job.probeOut.fps + ' fps' : ''}${hdrTag}`);
       libAdd({ id: job.id, name: job.fileName || 'video', mode: job.mode, status: 'done', at: Date.now(), in: job.probeIn || null, out: job.probeOut || null, result: job.result || null }).catch(() => {});
       stat(job.outputPath)
         .then((s) => { job.outputBytes = s.size; })

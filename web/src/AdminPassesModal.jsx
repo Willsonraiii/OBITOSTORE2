@@ -8,6 +8,9 @@ export default function AdminPassesModal({ apiKey, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState(null);
+  const [expandedRefCode, setExpandedRefCode] = useState(null);
+  const [clientFilterRef, setClientFilterRef] = useState('ALL');
+  const [clientSearch, setClientSearch] = useState('');
 
   // New Referral Form
   const [newRefCode, setNewRefCode] = useState('');
@@ -234,8 +237,14 @@ export default function AdminPassesModal({ apiKey, onClose }) {
             </form>
 
             {/* List of Referrals */}
+            {/* List of Referrals */}
             <div className="admin-list-section">
-              <h4 className="admin-section-sub">Active Referral Codes</h4>
+              <div className="admin-section-sub-row">
+                <h4 className="admin-section-sub">Active Referral Codes</h4>
+                <span className="admin-section-caption">
+                  Click 👥 Users on any code to monitor who redeemed it
+                </span>
+              </div>
               {loading ? (
                 <div className="admin-empty-state">Loading passes…</div>
               ) : referrals.length === 0 ? (
@@ -244,45 +253,126 @@ export default function AdminPassesModal({ apiKey, onClose }) {
                 <div className="admin-items-stack">
                   {referrals.map((ref) => {
                     const isExhausted = ref.maxUses !== null && ref.usedCount >= ref.maxUses;
+                    const isExpanded = expandedRefCode === ref.code;
+                    const redeemedClients = clients.filter(
+                      (c) => (c.referralCode || '').toUpperCase() === ref.code.toUpperCase()
+                    );
                     return (
-                      <div key={ref.code} className={`admin-item-row ${ref.status !== 'active' ? 'disabled' : ''}`}>
-                        <div className="admin-item-info">
-                          <div className="admin-item-badge-row">
-                            <span className="admin-code-badge">{ref.code}</span>
-                            <span className={`admin-status-pill ${ref.status === 'active' && !isExhausted ? 'active' : 'inactive'}`}>
-                              {ref.status !== 'active' ? 'Disabled' : isExhausted ? 'Exhausted' : 'Active'}
-                            </span>
-                            <span className="admin-usage-count">
-                              {ref.usedCount || 0} / {ref.maxUses === null ? '∞' : ref.maxUses} used
-                            </span>
+                      <div key={ref.code} className="admin-referral-card-group">
+                        <div className={`admin-item-row ${ref.status !== 'active' ? 'disabled' : ''}`}>
+                          <div className="admin-item-info">
+                            <div className="admin-item-badge-row">
+                              <span className="admin-code-badge">{ref.code}</span>
+                              <span className={`admin-status-pill ${ref.status === 'active' && !isExhausted ? 'active' : 'inactive'}`}>
+                                {ref.status !== 'active' ? 'Disabled' : isExhausted ? 'Exhausted' : 'Active'}
+                              </span>
+                              <span className="admin-usage-count">
+                                {ref.usedCount || 0} / {ref.maxUses === null ? '∞' : ref.maxUses} used
+                              </span>
+                            </div>
+                            {ref.note && <p className="admin-item-note">{ref.note}</p>}
                           </div>
-                          {ref.note && <p className="admin-item-note">{ref.note}</p>}
+                          <div className="admin-item-actions">
+                            <button
+                              type="button"
+                              className={`btn-secondary admin-action-btn ${isExpanded ? 'active-ref-btn' : ''}`}
+                              onClick={() => setExpandedRefCode(isExpanded ? null : ref.code)}
+                              title="Monitor users who redeemed this code"
+                            >
+                              👥 {redeemedClients.length} {redeemedClients.length === 1 ? 'user' : 'users'} {isExpanded ? '▲' : '▼'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary admin-action-btn"
+                              onClick={() => copyToClipboard(ref.code, `ref_${ref.code}`)}
+                              title="Copy Code"
+                            >
+                              {copiedKey === `ref_${ref.code}` ? 'Copied ✓' : 'Copy'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary admin-action-btn"
+                              onClick={() => handleToggleReferral(ref.code)}
+                            >
+                              {ref.status === 'active' ? 'Disable' : 'Enable'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary admin-action-btn danger"
+                              onClick={() => handleDeleteReferral(ref.code)}
+                              title="Delete"
+                            >
+                              ×
+                            </button>
+                          </div>
                         </div>
-                        <div className="admin-item-actions">
-                          <button
-                            type="button"
-                            className="btn-secondary admin-action-btn"
-                            onClick={() => copyToClipboard(ref.code, `ref_${ref.code}`)}
-                            title="Copy Code"
-                          >
-                            {copiedKey === `ref_${ref.code}` ? 'Copied ✓' : 'Copy'}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-secondary admin-action-btn"
-                            onClick={() => handleToggleReferral(ref.code)}
-                          >
-                            {ref.status === 'active' ? 'Disable' : 'Enable'}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-secondary admin-action-btn danger"
-                            onClick={() => handleDeleteReferral(ref.code)}
-                            title="Delete"
-                          >
-                            ×
-                          </button>
-                        </div>
+
+                        {/* Expandable Redeemed Users Drawer */}
+                        {isExpanded && (
+                          <div className="admin-redeemed-drawer">
+                            <div className="admin-redeemed-drawer-header">
+                              <span className="drawer-title">
+                                Redeemed by <strong>{redeemedClients.length}</strong> {redeemedClients.length === 1 ? 'client' : 'clients'} for code <code>{ref.code}</code>
+                              </span>
+                              {redeemedClients.length > 0 && (
+                                <button
+                                  type="button"
+                                  className="admin-link-btn"
+                                  onClick={() => {
+                                    setClientFilterRef(ref.code);
+                                    setActiveTab('clients');
+                                  }}
+                                >
+                                  Filter in Clients tab →
+                                </button>
+                              )}
+                            </div>
+                            {redeemedClients.length === 0 ? (
+                              <div className="admin-drawer-empty">No clients have redeemed this code yet.</div>
+                            ) : (
+                              <div className="admin-drawer-list">
+                                {redeemedClients.map((c) => (
+                                  <div key={c.clientId} className="admin-drawer-item">
+                                    <div className="admin-drawer-item-main">
+                                      <div className="drawer-user-title-row">
+                                        <span className="drawer-user-name">{c.name || 'Referral User'}</span>
+                                        <span className={`admin-status-pill ${c.status === 'active' ? 'active' : 'inactive'}`}>
+                                          {c.status === 'active' ? 'Active' : 'Revoked'}
+                                        </span>
+                                      </div>
+                                      <div className="drawer-user-sub">
+                                        <span className="drawer-user-id">ID: <code>{c.clientId}</code></span>
+                                        <span className="drawer-user-code">Code: <code>{c.accessCode}</code></span>
+                                        {c.createdAt && (
+                                          <span className="drawer-user-time">
+                                            Redeemed: {new Date(c.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="admin-drawer-item-actions">
+                                      <button
+                                        type="button"
+                                        className="btn-secondary admin-action-btn"
+                                        onClick={() => copyToClipboard(`Client ID: ${c.clientId}\nAccess Code: ${c.accessCode}`, `cred_${c.clientId}`)}
+                                        title="Copy Credentials"
+                                      >
+                                        {copiedKey === `cred_${c.clientId}` ? 'Copied ✓' : 'Copy'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={`btn-secondary admin-action-btn ${c.status === 'active' ? 'danger' : ''}`}
+                                        onClick={() => handleToggleClient(c.clientId)}
+                                      >
+                                        {c.status === 'active' ? 'Revoke' : 'Activate'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -334,60 +424,150 @@ export default function AdminPassesModal({ apiKey, onClose }) {
               </button>
             </form>
 
-            {/* List of Clients */}
+            {/* List of Clients with Filter & Search */}
             <div className="admin-list-section">
-              <h4 className="admin-section-sub">Registered Client Credentials</h4>
+              <div className="admin-section-sub-row">
+                <h4 className="admin-section-sub">Registered Client Credentials</h4>
+                {clientFilterRef !== 'ALL' && (
+                  <span className="admin-active-filter-indicator">
+                    Filtered by: <strong>{clientFilterRef}</strong>
+                  </span>
+                )}
+              </div>
+
+              {/* Filter controls */}
+              <div className="admin-clients-filter-bar">
+                <input
+                  type="text"
+                  className="studio-input admin-filter-search"
+                  placeholder="Search name, client ID, or code…"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                />
+                <select
+                  className="studio-input admin-filter-select"
+                  value={clientFilterRef}
+                  onChange={(e) => setClientFilterRef(e.target.value)}
+                >
+                  <option value="ALL">All Sources ({clients.length})</option>
+                  <option value="MANUAL">Manual Creation ({clients.filter((c) => !c.referralCode).length})</option>
+                  <optgroup label="Filter by Referral Code">
+                    {referrals.map((r) => {
+                      const count = clients.filter((c) => (c.referralCode || '').toUpperCase() === r.code.toUpperCase()).length;
+                      return (
+                        <option key={r.code} value={r.code}>
+                          Code: {r.code} ({count} redeemed)
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                </select>
+                {(clientFilterRef !== 'ALL' || clientSearch.trim()) && (
+                  <button
+                    type="button"
+                    className="btn-secondary admin-action-btn"
+                    onClick={() => {
+                      setClientFilterRef('ALL');
+                      setClientSearch('');
+                    }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+
               {loading ? (
                 <div className="admin-empty-state">Loading clients…</div>
               ) : clients.length === 0 ? (
                 <div className="admin-empty-state">No registered clients yet.</div>
               ) : (
-                <div className="admin-items-stack">
-                  {clients.map((c) => (
-                    <div key={c.clientId} className={`admin-item-row ${c.status !== 'active' ? 'disabled' : ''}`}>
-                      <div className="admin-item-info">
-                        <div className="admin-item-badge-row">
-                          <span className="admin-client-name">{c.name || 'Client'}</span>
-                          <span className={`admin-status-pill ${c.status === 'active' ? 'active' : 'inactive'}`}>
-                            {c.status === 'active' ? 'Active' : 'Revoked'}
-                          </span>
-                          {c.referralCode && (
-                            <span className="admin-ref-tag">via {c.referralCode}</span>
-                          )}
-                        </div>
-                        <div className="admin-creds-preview">
-                          <span><strong>ID:</strong> {c.clientId}</span>
-                          <span><strong>Code:</strong> <code>{c.accessCode}</code></span>
-                        </div>
+                (() => {
+                  const filteredClients = clients.filter((c) => {
+                    if (clientFilterRef === 'MANUAL' && c.referralCode) return false;
+                    if (clientFilterRef !== 'ALL' && clientFilterRef !== 'MANUAL') {
+                      if ((c.referralCode || '').toUpperCase() !== clientFilterRef.toUpperCase()) return false;
+                    }
+                    if (clientSearch.trim()) {
+                      const q = clientSearch.trim().toLowerCase();
+                      const matchName = (c.name || '').toLowerCase().includes(q);
+                      const matchId = (c.clientId || '').toLowerCase().includes(q);
+                      const matchCode = (c.accessCode || '').toLowerCase().includes(q);
+                      const matchRef = (c.referralCode || '').toLowerCase().includes(q);
+                      if (!matchName && !matchId && !matchCode && !matchRef) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filteredClients.length === 0) {
+                    return (
+                      <div className="admin-empty-state">
+                        No clients match the current filter or search criteria.
                       </div>
-                      <div className="admin-item-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary admin-action-btn"
-                          onClick={() => copyToClipboard(`Client ID: ${c.clientId}\nAccess Code: ${c.accessCode}`, `cred_${c.clientId}`)}
-                          title="Copy ID & Code for WhatsApp"
-                        >
-                          {copiedKey === `cred_${c.clientId}` ? 'Copied ✓' : 'Copy Credentials'}
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn-secondary admin-action-btn ${c.status === 'active' ? 'danger' : ''}`}
-                          onClick={() => handleToggleClient(c.clientId)}
-                        >
-                          {c.status === 'active' ? 'Revoke' : 'Activate'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-secondary admin-action-btn danger"
-                          onClick={() => handleDeleteClient(c.clientId)}
-                          title="Delete"
-                        >
-                          ×
-                        </button>
-                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="admin-items-stack">
+                      {filteredClients.map((c) => (
+                        <div key={c.clientId} className={`admin-item-row ${c.status !== 'active' ? 'disabled' : ''}`}>
+                          <div className="admin-item-info">
+                            <div className="admin-item-badge-row">
+                              <span className="admin-client-name">{c.name || 'Client'}</span>
+                              <span className={`admin-status-pill ${c.status === 'active' ? 'active' : 'inactive'}`}>
+                                {c.status === 'active' ? 'Active' : 'Revoked'}
+                              </span>
+                              {c.referralCode ? (
+                                <span
+                                  className="admin-ref-tag clickable"
+                                  onClick={() => setClientFilterRef(c.referralCode)}
+                                  title={`Filter all users who used ${c.referralCode}`}
+                                >
+                                  via {c.referralCode}
+                                </span>
+                              ) : (
+                                <span className="admin-manual-tag">manual</span>
+                              )}
+                              {c.createdAt && (
+                                <span className="admin-client-created">
+                                  {new Date(c.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              )}
+                            </div>
+                            <div className="admin-creds-preview">
+                              <span><strong>ID:</strong> {c.clientId}</span>
+                              <span><strong>Code:</strong> <code>{c.accessCode}</code></span>
+                            </div>
+                          </div>
+                          <div className="admin-item-actions">
+                            <button
+                              type="button"
+                              className="btn-secondary admin-action-btn"
+                              onClick={() => copyToClipboard(`Client ID: ${c.clientId}\nAccess Code: ${c.accessCode}`, `cred_${c.clientId}`)}
+                              title="Copy ID & Code for WhatsApp"
+                            >
+                              {copiedKey === `cred_${c.clientId}` ? 'Copied ✓' : 'Copy Credentials'}
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn-secondary admin-action-btn ${c.status === 'active' ? 'danger' : ''}`}
+                              onClick={() => handleToggleClient(c.clientId)}
+                            >
+                              {c.status === 'active' ? 'Revoke' : 'Activate'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary admin-action-btn danger"
+                              onClick={() => handleDeleteClient(c.clientId)}
+                              title="Delete"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()
               )}
             </div>
           </div>

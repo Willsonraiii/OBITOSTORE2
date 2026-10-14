@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, rename, copyFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename, copyFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
@@ -35,8 +35,12 @@ function withLock(fn) {
 
 /**
  * Read the current members store with zero-data-loss fallback.
- * Checks MEMBERS_FILE first, then BACKUP_FILE.
- * NEVER resets to default if an existing data file is present.
+ * Multi-tier recovery:
+ *   Tier 1: Primary MEMBERS_FILE (~/.obito-studio-data/members.json)
+ *   Tier 2: Redundant BACKUP_FILE (~/.obito-studio-data/members.backup.json)
+ *   Tier 3: Latest timestamped snapshot in SNAPSHOTS_DIR
+ *   Tier 4: Legacy file in repository root
+ * NEVER resets to default if any of the above stores exist.
  */
 export async function getMembersStore() {
   await mkdir(PERSISTENT_DIR, { recursive: true });
@@ -75,7 +79,29 @@ export async function getMembersStore() {
     }
   }
 
-  // 3. Check legacy file in repo root
+  // 3. Try latest snapshot from snapshots directory
+  try {
+    if (existsSync(SNAPSHOTS_DIR)) {
+      const snapFiles = (await readdir(SNAPSHOTS_DIR)).filter(f => f.startsWith('members_') && f.endsWith('.json')).sort();
+      if (snapFiles.length > 0) {
+        const latestSnap = path.join(SNAPSHOTS_DIR, snapFiles[snapFiles.length - 1]);
+        const snapRaw = await readFile(latestSnap, 'utf8');
+        if (snapRaw && snapRaw.trim().length > 0) {
+          const data = JSON.parse(snapRaw);
+          if (!Array.isArray(data.referrals)) data.referrals = [];
+          if (!Array.isArray(data.clients)) data.clients = [];
+          await atomicWriteFile(MEMBERS_FILE, snapRaw);
+          await atomicWriteFile(BACKUP_FILE, snapRaw);
+          console.warn(`[members-store] Successfully recovered members store from snapshot: ${latestSnap}`);
+          return data;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[members-store] Snapshot recovery error:', err);
+  }
+
+  // 4. Check legacy file in repo root
   if (existsSync(LEGACY_FILE)) {
     try {
       const legacyRaw = await readFile(LEGACY_FILE, 'utf8');
@@ -91,7 +117,7 @@ export async function getMembersStore() {
     }
   }
 
-  // 4. Genuine first run initialization only
+  // 5. Genuine first run initialization only
   const initial = JSON.parse(JSON.stringify(DEFAULT_STORE));
   await saveMembersStore(initial);
   return initial;
@@ -125,9 +151,20 @@ export async function saveMembersStore(data) {
       // Write atomically to secondary backup
       await atomicWriteFile(BACKUP_FILE, serialized);
 
-      // Periodic rolling snapshot (keeps last 10 snapshots)
+      // Periodic rolling snapshot
       const snapshotPath = path.join(SNAPSHOTS_DIR, `members_${Date.now()}.json`);
       await writeFile(snapshotPath, serialized, 'utf8').catch(() => {});
+
+      // Keep up to 20 newest snapshots, prune older ones
+      try {
+        const snaps = (await readdir(SNAPSHOTS_DIR)).filter(f => f.startsWith('members_') && f.endsWith('.json')).sort();
+        if (snaps.length > 20) {
+          const toDelete = snaps.slice(0, snaps.length - 20);
+          for (const f of toDelete) {
+            await unlink(path.join(SNAPSHOTS_DIR, f)).catch(() => {});
+          }
+        }
+      } catch {}
     } catch (err) {
       console.error('[members-store] CRITICAL failed to save members store:', err);
       throw err;

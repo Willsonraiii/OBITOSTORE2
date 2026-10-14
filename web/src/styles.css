@@ -298,12 +298,6 @@ button {
   border-radius: 50%;
   background: var(--accent-emerald);
   box-shadow: 0 0 8px var(--accent-emerald);
-  animation: pulse-live 2s infinite ease-in-out;
-}
-
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 /* Center Logo Segment */
@@ -444,7 +438,6 @@ button {
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
-  animation: pulse-live 1s infinite;
 }
 
 .key-badge-btn {
@@ -542,7 +535,7 @@ button {
   max-width: 1040px;
   width: 100%;
   margin: 0 auto;
-  padding: 40px 24px 100px;
+  padding: 40px 24px 160px;
 }
 
 .workspace-view {
@@ -622,13 +615,13 @@ button {
   width: 100%;
   max-width: 540px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.025);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.78) 100%);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-xl);
   padding: 28px 24px 22px;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(8px) saturate(190%);
-  -webkit-backdrop-filter: blur(8px) saturate(190%);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1303,7 +1296,6 @@ button {
 .terminal-indicator.pulsing {
   background: #ffffff;
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
-  animation: pulse-live 1.5s infinite;
 }
 
 .terminal-indicator.done {
@@ -1394,17 +1386,17 @@ button {
   align-items: stretch;
   position: relative;
   gap: 0;
-  padding: 3px;
-  width: 360px;
+  padding: 4px;
+  width: 370px;
   max-width: calc(100vw - 16px);
-  height: 48px;
-  min-height: 48px;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(32px) saturate(210%);
-  -webkit-backdrop-filter: blur(32px) saturate(210%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  height: 52px;
+  min-height: 52px;
+  background: rgba(12, 15, 24, 0.88);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1.5px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.25), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
   overflow: visible;
   touch-action: none;
   -webkit-touch-callout: none;
@@ -1417,18 +1409,15 @@ button {
 /* 3D Convex Floating Clear Liquid Glass Lens Pill with High Elasticity */
 .ios-dock-pill-slider {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 4px;
+  bottom: 4px;
   left: 0;
   border-radius: 999px;
-  background: radial-gradient(ellipse at 50% 12%, rgba(56, 189, 248, 0.5) 0%, rgba(16, 185, 129, 0.22) 50%, rgba(255, 255, 255, 0.22) 100%), rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-  border-left: 1px solid rgba(255, 255, 255, 0.55);
-  border-right: 1px solid rgba(255, 255, 255, 0.55);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 22px rgba(56, 189, 248, 0.45), inset 0 2px 2px rgba(255, 255, 255, 0.9), inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 100%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.45);
   transition: transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275), width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
   pointer-events: none;
   z-index: 1;
@@ -1527,7 +1516,6 @@ button {
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
-  animation: pulse-live 1s infinite;
 }
 
 /* ---------- Telemetry Progress HUD ---------- */
@@ -1993,12 +1981,14 @@ button {
 }
 
 .pillar-card {
-  background: rgba(18, 21, 32, 0.7);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.82) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 24px;
   text-align: left;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), var(--inner-highlight);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2070,11 +2060,13 @@ button {
 }
 
 .workflow-card {
-  background: rgba(18, 21, 32, 0.7);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.82) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 22px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), var(--inner-highlight);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition: border-color 0.2s ease;
 }
 
@@ -2950,6 +2942,15 @@ button {
   }
   .studio-clock {
     display: none !important;
+  }
+  .brand-beta-tag {
+    font-size: 7.5px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    letter-spacing: 0.05em;
+  }
+  .topbar-left {
+    gap: 4px;
   }
   .brand-name {
     font-size: 12px;
@@ -4088,7 +4089,7 @@ button {
   gap: 32px;
   max-width: 860px;
   margin: 0 auto;
-  padding: 16px 16px 80px;
+  padding: 16px 16px 160px;
 }
 
 .guide-hero {
@@ -4126,23 +4127,23 @@ button {
 
 .guide-step-card {
   position: relative;
-  background: rgba(16, 19, 29, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border-radius: var(--radius-xl);
   padding: 28px 30px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .guide-step-card:hover {
-  border-color: rgba(56, 189, 248, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 24px rgba(56, 189, 248, 0.1);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
 }
 
 .guide-step-card.is-highlight {
@@ -4362,17 +4363,29 @@ button {
 
 /* Topbar BETA Pill Badge */
 .brand-beta-tag {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.95);
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 1.5px 6.5px;
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  margin-left: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  margin-left: 6px;
   align-self: center;
+}
+
+.topbar-right-logo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.topbar-center.is-empty {
+  display: none;
 }
 
 .studio-dashboard {
@@ -4382,7 +4395,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 28px;
-  padding: 4px 12px 100px;
+  padding: 4px 12px 160px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -4455,7 +4468,6 @@ button {
 .dash-engine-status.busy .dash-status-dot {
   background: #f59e0b;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.9);
-  animation: pulseAmber 1.6s infinite ease-in-out;
 }
 
 .dash-status-text {
@@ -4555,22 +4567,22 @@ button {
 }
 
 .dash-stat-card {
-  background: rgba(18, 21, 32, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.82) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   text-align: left;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), var(--inner-highlight);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .dash-stat-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
@@ -4586,25 +4598,6 @@ button {
   letter-spacing: 0.1em;
   color: var(--text-dim);
   text-transform: uppercase;
-}
-
-.dash-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
-}
-
-.dash-pulse-dot.busy {
-  background: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
-  animation: pulseAmber 1.6s infinite ease-in-out;
-}
-
-@keyframes pulseAmber {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.85); }
 }
 
 .dash-stat-val {
@@ -4655,16 +4648,16 @@ button {
 }
 
 .dash-workflow-card {
-  background: rgba(18, 21, 32, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.84) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 24px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), var(--inner-highlight);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   cursor: pointer;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
@@ -4672,14 +4665,14 @@ button {
 }
 
 .dash-workflow-card:hover {
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
 }
 
 .dash-workflow-card.featured {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 21, 32, 0.8) 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(18, 21, 32, 0.86) 100%);
 }
 
 .dash-wf-top {
@@ -4775,16 +4768,16 @@ button {
 }
 
 .dash-pillar-item {
-  background: rgba(18, 21, 32, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 21, 32, 0.82) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), var(--inner-highlight);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dash-pillar-top {

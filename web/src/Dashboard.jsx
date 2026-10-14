@@ -87,7 +87,6 @@ export default function Dashboard({ onSwitchTab }) {
         <div className="dash-stat-card">
           <div className="dash-stat-header">
             <span className="dash-stat-label">MASTER PIPELINE</span>
-            <span className={`dash-pulse-dot ${queueStatus.busy ? 'busy' : 'active'}`} />
           </div>
           <div className="dash-stat-val">
             {loading ? 'SYNCING…' : queueStatus.busy ? 'OPTIMIZING' : 'STREAM COPY'}
@@ -102,7 +101,6 @@ export default function Dashboard({ onSwitchTab }) {
         <div className="dash-stat-card">
           <div className="dash-stat-header">
             <span className="dash-stat-label">MOTION PRESERVATION</span>
-            <span className="dash-pulse-dot active" />
           </div>
           <div className="dash-stat-val">60 &amp; 120 FPS</div>
           <div className="dash-stat-desc">Locks native frame rates; defeats platform 30fps drop</div>
@@ -111,7 +109,6 @@ export default function Dashboard({ onSwitchTab }) {
         <div className="dash-stat-header-card dash-stat-card">
           <div className="dash-stat-header">
             <span className="dash-stat-label">COLOR FIDELITY</span>
-            <span className="dash-pulse-dot active" />
           </div>
           <div className="dash-stat-val">10-BIT HDR &amp; DOVI</div>
           <div className="dash-stat-desc">Native Wide Color Gamut &amp; peak dynamic range intact</div>
@@ -120,7 +117,6 @@ export default function Dashboard({ onSwitchTab }) {
         <div className="dash-stat-card">
           <div className="dash-stat-header">
             <span className="dash-stat-label">SERVER QUEUE</span>
-            <span className={`dash-pulse-dot ${queueStatus.queuedCount > 0 ? 'busy' : 'active'}`} />
           </div>
           <div className="dash-stat-val">
             {loading ? '—' : queueStatus.queuedCount > 0 ? `${queueStatus.queuedCount} IN QUEUE` : '0 QUEUED'}

@@ -418,27 +418,29 @@ export default function App() {
           <span className="brand-beta-tag">BETA</span>
         </div>
 
-        {/* Center Segment: Frameless 3D Living Monogram (At Mid) */}
-        <div className="topbar-center">
-          <button
-            type="button"
-            className="topbar-logo-btn"
-            style={{
-              transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
-            }}
-            onClick={() => {
-              setActiveTab('dashboard');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            aria-label="OBITO STUDIO"
-          >
-            <Logo size={42} />
-          </button>
+        {/* Center Segment: Frameless 3D Living Monogram (Centered when signed in) */}
+        <div className={`topbar-center ${!ownerAuthenticated ? 'is-empty' : ''}`}>
+          {ownerAuthenticated && (
+            <button
+              type="button"
+              className="topbar-logo-btn"
+              style={{
+                transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
+              }}
+              onClick={() => {
+                setActiveTab('dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              aria-label="OBITO STUDIO"
+            >
+              <Logo size={42} />
+            </button>
+          )}
         </div>
 
-        {/* Right Segment: Access Key & Clock */}
+        {/* Right Segment: Access Key & Clock (or Logo at right when logged out) */}
         <div className="topbar-right">
-          {memberPreview && ownerAuthenticated && (
+          {memberPreview && ownerAuthenticated ? (
             <div className="topbar-user-menu-wrap">
               <button
                 type="button"
@@ -495,7 +497,23 @@ export default function App() {
                 </>
               )}
             </div>
+          ) : (
+            <button
+              type="button"
+              className="topbar-logo-btn topbar-right-logo-btn"
+              style={{
+                transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
+              }}
+              onClick={() => {
+                setActiveTab('dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              aria-label="OBITO STUDIO"
+            >
+              <Logo size={38} />
+            </button>
           )}
+
           {!memberPreview && <button
             type="button"
             className={`key-badge-btn ${apiKey ? 'configured' : ''}`}

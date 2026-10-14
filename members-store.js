@@ -1,10 +1,14 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const MEMBERS_FILE = path.join(ROOT, 'members.json');
+const PERSISTENT_DIR = process.env.DATA_DIR || path.join(process.env.HOME || '/home/willson', '.obito-studio-data');
+const MEMBERS_FILE = path.join(PERSISTENT_DIR, 'members.json');
+const BACKUP_FILE = path.join(PERSISTENT_DIR, 'members.backup.json');
+const LEGACY_FILE = path.join(ROOT, 'members.json');
 
 const DEFAULT_STORE = {
   referrals: [
@@ -25,6 +29,16 @@ const DEFAULT_STORE = {
  */
 export async function getMembersStore() {
   try {
+    await mkdir(PERSISTENT_DIR, { recursive: true });
+    // If persistent file doesn't exist but legacy file does, migrate it
+    if (!existsSync(MEMBERS_FILE) && existsSync(LEGACY_FILE)) {
+      try {
+        const legacyRaw = await readFile(LEGACY_FILE, 'utf8');
+        await writeFile(MEMBERS_FILE, legacyRaw, 'utf8');
+      } catch {
+        /* ignore migration read error */
+      }
+    }
     const raw = await readFile(MEMBERS_FILE, 'utf8');
     const data = JSON.parse(raw);
     if (!Array.isArray(data.referrals)) data.referrals = [];
@@ -37,11 +51,15 @@ export async function getMembersStore() {
 }
 
 /**
- * Persist the members store safely to disk.
+ * Persist the members store safely to disk with automatic redundancy.
  */
 export async function saveMembersStore(data) {
   try {
-    await writeFile(MEMBERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    await mkdir(PERSISTENT_DIR, { recursive: true });
+    const serialized = JSON.stringify(data, null, 2);
+    await writeFile(MEMBERS_FILE, serialized, 'utf8');
+    // Keep secondary backup
+    await writeFile(BACKUP_FILE, serialized, 'utf8');
   } catch (err) {
     console.error('[members-store] failed to save:', err);
   }

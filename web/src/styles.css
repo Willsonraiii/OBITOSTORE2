@@ -4545,19 +4545,20 @@ button {
    OBITO STUDIO — CONTROL DASHBOARD & QUEUE ARCHITECTURE (PRO HARDWARE)
    ========================================================================== */
 
-/* Topbar BETA Pill Badge */
+/* Topbar BETA Pill Badge — Non-transparent silver coated */
 .brand-beta-tag {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #090a0f;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 38%, #cbd5e1 70%, #94a3b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   padding: 1.5px 6.5px;
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   margin-left: 6px;
   align-self: center;
+  text-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.5);
 }
 
 .topbar-right-logo-btn {
@@ -4626,10 +4627,13 @@ button {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: #000000;
-  background: #ffffff;
+  color: #090a0f;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 38%, #cbd5e1 70%, #94a3b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   padding: 2px 7px;
   border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.5);
 }
 
 .dash-engine-status {

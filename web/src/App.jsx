@@ -566,15 +566,20 @@ export default function App() {
       )}
 
       {/* ---------- Main Workspace Viewport ---------- */}
-      <main className="studio-workspace">
-        {activeTab === 'dashboard' && (
-          <section className="workspace-view active" key="dashboard">
-            <Dashboard onSwitchTab={switchTabWithHaptic} />
-          </section>
-        )}
+      <main className={`studio-workspace ${activeTab === 'optimizer' ? 'tab-optimizer' : ''} ${activeTab === 'optimizer' && !ownerAuthenticated ? 'optimizer-locked-viewport' : ''}`}>
+        <section
+          className={`workspace-view ${activeTab === 'dashboard' ? 'active' : ''}`}
+          style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}
+          key="dashboard"
+        >
+          <Dashboard onSwitchTab={switchTabWithHaptic} />
+        </section>
 
-        {activeTab === 'optimizer' && (
-          <section className={`workspace-view active optimizer-view ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? (showMemberModal ? 'member-signin-view' : 'member-locked-view') : ''}`} key="optimizer">
+        <section
+          className={`workspace-view optimizer-view ${activeTab === 'optimizer' ? 'active' : ''} ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? (showMemberModal ? 'member-signin-view' : 'member-locked-view') : ''}`}
+          style={{ display: activeTab === 'optimizer' ? 'flex' : 'none' }}
+          key="optimizer"
+        >
             <div className="hero-banner text-center mb-6">
               <h1
                 className="hero-headline text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 cursor-pointer select-none"
@@ -725,33 +730,39 @@ export default function App() {
                 </div>
               </div>
             ) : <Optimizer apiKey={apiKey} onKeyChange={onKeyChange} onBusy={setBusy} />}
-          </section>
-        )}
+        </section>
 
-        {activeTab === 'guide' && (
-          <section className="workspace-view active" key="guide">
-            <Guide onSwitchToOptimizer={() => setActiveTab('optimizer')} />
-          </section>
-        )}
+        <section
+          className={`workspace-view ${activeTab === 'guide' ? 'active' : ''}`}
+          style={{ display: activeTab === 'guide' ? 'block' : 'none' }}
+          key="guide"
+        >
+          <Guide onSwitchToOptimizer={() => setActiveTab('optimizer')} />
+        </section>
 
-        {activeTab === 'inspect' && (
-          <section className="workspace-view active" key="inspect">
-            <div className="section-head">
-              <div className="head-badge">
-                <InspectIcon width={14} height={14} />
-                <span>CODEC AUDIT</span>
-              </div>
-              <h2 className="head-title">TikTok Codec Inspector</h2>
-              <p className="head-sub">
-                Audit video containers, timescale, 60fps/120fps, and HDR color metadata.
-              </p>
+        <section
+          className={`workspace-view ${activeTab === 'inspect' ? 'active' : ''}`}
+          style={{ display: activeTab === 'inspect' ? 'block' : 'none' }}
+          key="inspect"
+        >
+          <div className="section-head">
+            <div className="head-badge">
+              <InspectIcon width={14} height={14} />
+              <span>CODEC AUDIT</span>
             </div>
-            <Inspector apiKey={apiKey} />
-          </section>
-        )}
+            <h2 className="head-title">TikTok Codec Inspector</h2>
+            <p className="head-sub">
+              Audit video containers, timescale, 60fps/120fps, and HDR color metadata.
+            </p>
+          </div>
+          <Inspector apiKey={apiKey} />
+        </section>
 
-        {activeTab === 'specs' && (
-          <section className="workspace-view active" key="specs">
+        <section
+          className={`workspace-view ${activeTab === 'specs' ? 'active' : ''}`}
+          style={{ display: activeTab === 'specs' ? 'block' : 'none' }}
+          key="specs"
+        >
             <div className="section-head">
               <div className="head-badge">
                 <LayersIcon width={14} height={14} />
@@ -817,8 +828,7 @@ export default function App() {
                 </details>
               ))}
             </div>
-          </section>
-        )}
+        </section>
       </main>
 
       {/* ---------- Studio Footer ---------- */}
@@ -831,6 +841,9 @@ export default function App() {
           <span>Bit-for-Bit Stream Copy · Multi-Platform Native Fluidity</span>
         </div>
       </footer>
+
+      {/* Bottom Scroll Liquid Blur Gradient Mask (Apple Liquid Glass Dock Vignette) */}
+      <div className="bottom-scroll-blur-mask" aria-hidden="true" />
 
       {/* ---------- iOS Vision Clear Glass Bottom Dock ---------- */}
       <nav

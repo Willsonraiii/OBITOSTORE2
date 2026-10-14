@@ -1,4 +1,12 @@
+import { motion } from 'framer-motion';
 import { FilmIcon, HdrIcon, FpsIcon, CheckIcon, AlertTriangleIcon, UploadIcon, ShareIcon } from './icons.jsx';
+
+const scrollBlurCard = {
+  initial: { opacity: 0.2, filter: 'blur(10px)', y: 24 },
+  whileInView: { opacity: 1, filter: 'blur(0px)', y: 0 },
+  viewport: { once: false, amount: 0.15, margin: "-10px 0px -40px 0px" },
+  transition: { duration: 0.52, ease: [0.16, 1, 0.3, 1] }
+};
 
 export default function Guide({ onSwitchToOptimizer }) {
   const steps = [
@@ -52,18 +60,28 @@ export default function Guide({ onSwitchToOptimizer }) {
 
   return (
     <div className="guide-view">
-      <div className="guide-hero">
+      <motion.div
+        className="guide-hero"
+        initial={{ opacity: 0.3, filter: 'blur(12px)', y: 16 }}
+        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      >
         <h1 className="guide-title">
           How to Upload Lossless Videos to TikTok
         </h1>
         <p className="guide-subtitle">
           Follow this proven step-by-step master workflow to stop TikTok compression, preserve 60fps/120fps fluidity, and deliver ultra-sharp playback.
         </p>
-      </div>
+      </motion.div>
 
       <div className="guide-steps-list">
-        {steps.map((s) => (
-          <div key={s.num} className={`guide-step-card ${s.highlight ? 'is-highlight' : ''}`}>
+        {steps.map((s, idx) => (
+          <motion.div
+            key={s.num}
+            className={`guide-step-card ${s.highlight ? 'is-highlight' : ''}`}
+            {...scrollBlurCard}
+            transition={{ ...scrollBlurCard.transition, delay: idx * 0.05 }}
+          >
             <div className="guide-step-top">
               <div className="guide-step-num-badge">{s.num}</div>
               <div className="guide-step-header-text">
@@ -92,11 +110,14 @@ export default function Guide({ onSwitchToOptimizer }) {
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      <div className="guide-cta-card">
+      <motion.div
+        className="guide-cta-card"
+        {...scrollBlurCard}
+      >
         <div className="guide-cta-icon">
           <UploadIcon width={24} height={24} />
         </div>
@@ -111,7 +132,7 @@ export default function Guide({ onSwitchToOptimizer }) {
         >
           <span>Open Optimizer →</span>
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -4954,4 +4954,94 @@ button {
   }
 }
 
+/* ==========================================================================
+   MOBILE INPUT AUTO-ZOOM PREVENTION (iOS WebKit 16px Threshold)
+   ========================================================================== */
+input,
+textarea,
+select,
+.studio-input,
+.clean-input,
+.access-key-field input,
+.member-inline-form .studio-input,
+.insp-native-form .studio-input,
+.admin-input-group .studio-input,
+.lib-filter input {
+  font-size: 16px !important;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ==========================================================================
+   BOTTOM DOCK LIQUID SCROLL BLUR MASK (Apple Liquid Glass Dock Vignette)
+   ========================================================================== */
+.bottom-scroll-blur-mask {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  pointer-events: none;
+  z-index: 990;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.85) 42%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.85) 42%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(to top, rgba(8, 9, 14, 0.78) 0%, rgba(8, 9, 14, 0.28) 42%, rgba(8, 9, 14, 0) 100%);
+  transition: opacity 0.3s ease;
+}
+
+/* Hide or soften blur mask on strictly unscrollable locked view */
+.studio-workspace.optimizer-locked-viewport ~ .bottom-scroll-blur-mask {
+  opacity: 0.35;
+}
+
+/* ==========================================================================
+   OPTIMIZER UNPOST-SCROLLABLE / LOCKED VIEWPORT POSITIONING
+   ========================================================================== */
+.studio-workspace.optimizer-locked-viewport {
+  overflow: hidden !important;
+  height: calc(100dvh - 56px) !important;
+  max-height: calc(100dvh - 56px) !important;
+  padding-top: 0 !important;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 20px)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.optimizer-locked-viewport .optimizer-view {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.optimizer-locked-viewport .hero-banner {
+  margin-bottom: 16px;
+}
+
+.optimizer-locked-viewport .clean-dropzone {
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .studio-workspace.optimizer-locked-viewport {
+    height: calc(100dvh - 50px) !important;
+    max-height: calc(100dvh - 50px) !important;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 16px)) !important;
+    padding-top: 0 !important;
+    justify-content: center !important;
+  }
+  .optimizer-locked-viewport .hero-banner {
+    margin-bottom: 12px;
+  }
+}
+
+
 

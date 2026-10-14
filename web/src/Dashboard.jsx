@@ -1,8 +1,23 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   LightningIcon, InspectIcon, BookOpenIcon,
   DashboardIcon, ShieldIcon, CheckIcon
 } from './icons.jsx';
+
+const scrollBlurCard = {
+  initial: { opacity: 0.2, filter: 'blur(10px)', y: 24 },
+  whileInView: { opacity: 1, filter: 'blur(0px)', y: 0 },
+  viewport: { once: false, amount: 0.15, margin: "-10px 0px -40px 0px" },
+  transition: { duration: 0.52, ease: [0.16, 1, 0.3, 1] }
+};
+
+const scrollBlurButton = {
+  initial: { opacity: 0.25, filter: 'blur(8px)', y: 14 },
+  whileInView: { opacity: 1, filter: 'blur(0px)', y: 0 },
+  viewport: { once: false, amount: 0.2 },
+  transition: { duration: 0.44, ease: [0.16, 1, 0.3, 1] }
+};
 
 export default function Dashboard({ onSwitchTab }) {
   const [queueStatus, setQueueStatus] = useState({ busy: false, queuedCount: 0, activeJob: null });
@@ -36,7 +51,12 @@ export default function Dashboard({ onSwitchTab }) {
   return (
     <div className="studio-dashboard">
       {/* ---------- Hero Master Command Center ---------- */}
-      <div className="dash-hero-card">
+      <motion.div
+        className="dash-hero-card"
+        initial={{ opacity: 0.3, filter: 'blur(12px)', y: 20 }}
+        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="dash-hero-top">
           <div className="dash-hero-brand">
             <span className="dash-hero-badge">STUDIO MASTER CONTROL</span>
@@ -62,29 +82,32 @@ export default function Dashboard({ onSwitchTab }) {
         </div>
 
         <div className="dash-hero-actions">
-          <button
+          <motion.button
             type="button"
             className="btn-dash-hero primary"
             onClick={() => onSwitchTab('optimizer')}
+            {...scrollBlurButton}
           >
             <LightningIcon width={18} height={18} />
             <span>Open Lossless Optimizer</span>
             <span className="dash-arrow">→</span>
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             className="btn-dash-hero secondary"
             onClick={() => onSwitchTab('inspect')}
+            {...scrollBlurButton}
+            transition={{ ...scrollBlurButton.transition, delay: 0.08 }}
           >
             <InspectIcon width={18} height={18} />
             <span>Audit Video Container</span>
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* ---------- Live Hardware Telemetry Matrix ---------- */}
       <div className="dash-telemetry-grid">
-        <div className="dash-stat-card">
+        <motion.div className="dash-stat-card" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.02 }}>
           <div className="dash-stat-header">
             <span className="dash-stat-label">MASTER PIPELINE</span>
           </div>
@@ -96,25 +119,25 @@ export default function Dashboard({ onSwitchTab }) {
               ? `Processing: ${queueStatus.activeJob.stage}`
               : 'Pure lossless passthrough · Zero generation loss'}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="dash-stat-card">
+        <motion.div className="dash-stat-card" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.06 }}>
           <div className="dash-stat-header">
             <span className="dash-stat-label">MOTION PRESERVATION</span>
           </div>
           <div className="dash-stat-val">60 &amp; 120 FPS</div>
           <div className="dash-stat-desc">Locks native frame rates; defeats platform 30fps drop</div>
-        </div>
+        </motion.div>
 
-        <div className="dash-stat-header-card dash-stat-card">
+        <motion.div className="dash-stat-header-card dash-stat-card" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.1 }}>
           <div className="dash-stat-header">
             <span className="dash-stat-label">COLOR FIDELITY</span>
           </div>
           <div className="dash-stat-val">10-BIT HDR &amp; DOVI</div>
           <div className="dash-stat-desc">Native Wide Color Gamut &amp; peak dynamic range intact</div>
-        </div>
+        </motion.div>
 
-        <div className="dash-stat-card">
+        <motion.div className="dash-stat-card" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.14 }}>
           <div className="dash-stat-header">
             <span className="dash-stat-label">SERVER QUEUE</span>
           </div>
@@ -126,18 +149,23 @@ export default function Dashboard({ onSwitchTab }) {
               ? 'Sequential NVMe execution safely held in line'
               : 'Direct NVMe streaming · Zero wait time'}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ---------- Mastering Workflows ---------- */}
       <div className="dash-workflows-section">
-        <div className="dash-section-header">
+        <motion.div className="dash-section-header" {...scrollBlurCard}>
           <h2 className="dash-section-title">Mastering Workflows</h2>
           <span className="dash-section-sub">Direct studio actions accessible via the bottom control dock</span>
-        </div>
+        </motion.div>
 
         <div className="dash-workflows-grid">
-          <div className="dash-workflow-card featured" onClick={() => onSwitchTab('optimizer')}>
+          <motion.div
+            className="dash-workflow-card featured"
+            onClick={() => onSwitchTab('optimizer')}
+            {...scrollBlurCard}
+            transition={{ ...scrollBlurCard.transition, delay: 0.04 }}
+          >
             <div className="dash-wf-top">
               <div className="dash-wf-icon-wrap primary">
                 <LightningIcon width={24} height={24} />
@@ -152,9 +180,14 @@ export default function Dashboard({ onSwitchTab }) {
               <span className="dash-wf-cta">Launch Optimizer</span>
               <span className="dash-wf-arrow">→</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="dash-workflow-card" onClick={() => onSwitchTab('inspect')}>
+          <motion.div
+            className="dash-workflow-card"
+            onClick={() => onSwitchTab('inspect')}
+            {...scrollBlurCard}
+            transition={{ ...scrollBlurCard.transition, delay: 0.08 }}
+          >
             <div className="dash-wf-top">
               <div className="dash-wf-icon-wrap">
                 <InspectIcon width={24} height={24} />
@@ -169,9 +202,14 @@ export default function Dashboard({ onSwitchTab }) {
               <span className="dash-wf-cta">Audit Video</span>
               <span className="dash-wf-arrow">→</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="dash-workflow-card" onClick={() => onSwitchTab('guide')}>
+          <motion.div
+            className="dash-workflow-card"
+            onClick={() => onSwitchTab('guide')}
+            {...scrollBlurCard}
+            transition={{ ...scrollBlurCard.transition, delay: 0.12 }}
+          >
             <div className="dash-wf-top">
               <div className="dash-wf-icon-wrap">
                 <BookOpenIcon width={24} height={24} />
@@ -186,19 +224,19 @@ export default function Dashboard({ onSwitchTab }) {
               <span className="dash-wf-cta">Read Protocols</span>
               <span className="dash-wf-arrow">→</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {/* ---------- Studio Quality Pillars (No Leaked Engineering Formulas) ---------- */}
       <div className="dash-pillars-section">
-        <div className="dash-section-header">
+        <motion.div className="dash-section-header" {...scrollBlurCard}>
           <h2 className="dash-section-title">Master Quality Commitments</h2>
           <span className="dash-section-sub">Engineered for creators who refuse generational compression loss</span>
-        </div>
+        </motion.div>
 
         <div className="dash-pillars-grid">
-          <div className="dash-pillar-item">
+          <motion.div className="dash-pillar-item" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.04 }}>
             <div className="dash-pillar-top">
               <div className="dash-pillar-check">
                 <CheckIcon width={16} height={16} strokeWidth={2.5} />
@@ -208,9 +246,9 @@ export default function Dashboard({ onSwitchTab }) {
             <p className="dash-pillar-desc">
               Obito Studio never decompresses or re-encodes frames. Compressed video and audio packets pass through completely intact, ensuring 0% loss of master sharpness.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="dash-pillar-item">
+          <motion.div className="dash-pillar-item" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.08 }}>
             <div className="dash-pillar-top">
               <div className="dash-pillar-check">
                 <CheckIcon width={16} height={16} strokeWidth={2.5} />
@@ -220,9 +258,9 @@ export default function Dashboard({ onSwitchTab }) {
             <p className="dash-pillar-desc">
               Container metadata is structured to satisfy platform ingestion rules, eliminating the automatic 30fps downsampling pass applied to standard uploads.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="dash-pillar-item">
+          <motion.div className="dash-pillar-item" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.12 }}>
             <div className="dash-pillar-top">
               <div className="dash-pillar-check">
                 <CheckIcon width={16} height={16} strokeWidth={2.5} />
@@ -232,7 +270,7 @@ export default function Dashboard({ onSwitchTab }) {
             <p className="dash-pillar-desc">
               Your masters never touch public cloud repositories. Operations run locally on NVMe storage, and files are automatically purged immediately after download.
             </p>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

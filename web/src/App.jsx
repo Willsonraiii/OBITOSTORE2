@@ -3,14 +3,14 @@ import Logo from './Logo.jsx';
 import Optimizer, { BotStage } from './Optimizer.jsx';
 import { ThinkingOrb } from 'thinking-orbs';
 import Inspector from './Inspector.jsx';
-import Library from './Library.jsx';
+import Dashboard from './Dashboard.jsx';
 import AdminPassesModal from './AdminPassesModal.jsx';
 import { ShaderAnimation } from '@/components/ui/shader-animation';
 import Guide from './Guide.jsx';
 import {
   ChevronIcon, FpsIcon, HdrIcon, HelpIcon,
   InspectIcon, LayersIcon, LightningIcon, ShieldIcon, SparkIcon, FilmIcon,
-  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon, BookOpenIcon
+  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon, BookOpenIcon, DashboardIcon
 } from './icons.jsx';
 import { ShutterText } from '@/components/ui/hero-shutter-text.jsx';
 import { AnimatedText } from '@/components/ui/animated-text.jsx';
@@ -19,12 +19,11 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
 
 const TABS = [
-  { id: 'optimizer', label: 'Optimizer', Icon: LightningIcon },
+  { id: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { id: 'guide', label: 'Guide', Icon: BookOpenIcon },
+  { id: 'optimizer', label: 'Optimizer', Icon: LightningIcon },
   { id: 'inspect', label: 'Inspector', Icon: InspectIcon },
-  { id: 'library', label: 'Library', Icon: FilmIcon },
-  { id: 'architecture', label: 'Specs', Icon: LayersIcon },
-  { id: 'faq', label: 'FAQ', Icon: HelpIcon },
+  { id: 'specs', label: 'Specs & FAQ', Icon: LayersIcon },
 ];
 
 /* ---------- Technical Architecture Content ---------- */
@@ -549,6 +548,12 @@ export default function App() {
 
       {/* ---------- Main Workspace Viewport ---------- */}
       <main className="studio-workspace">
+        {activeTab === 'dashboard' && (
+          <section className="workspace-view active" key="dashboard">
+            <Dashboard onSwitchTab={switchTabWithHaptic} />
+          </section>
+        )}
+
         {activeTab === 'optimizer' && (
           <section className={`workspace-view active optimizer-view ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? (showMemberModal ? 'member-signin-view' : 'member-locked-view') : ''}`} key="optimizer">
             <div className="hero-banner text-center mb-6">
@@ -726,28 +731,12 @@ export default function App() {
           </section>
         )}
 
-        {activeTab === 'library' && (
-          <section className="workspace-view active" key="library">
-            <div className="section-head">
-              <div className="head-badge">
-                <FilmIcon width={14} height={14} />
-                <span>SERVER STORAGE AUDIT</span>
-              </div>
-              <h2 className="head-title">Lossless Export Master Library</h2>
-              <p className="head-sub">
-                Review recently repackaged masters and cached uploads currently staged in local server memory.
-              </p>
-            </div>
-            <Library apiKey={apiKey} />
-          </section>
-        )}
-
-        {activeTab === 'architecture' && (
-          <section className="workspace-view active" key="architecture">
+        {activeTab === 'specs' && (
+          <section className="workspace-view active" key="specs">
             <div className="section-head">
               <div className="head-badge">
                 <LayersIcon width={14} height={14} />
-                <span>TECHNICAL SPECIFICATIONS</span>
+                <span>TECHNICAL SPECIFICATIONS &amp; FAQ</span>
               </div>
               <h2 className="head-title">Engine Architecture &amp; Methodology</h2>
               <p className="head-sub">
@@ -784,12 +773,10 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </section>
-        )}
 
-        {activeTab === 'faq' && (
-          <section className="workspace-view active" key="faq">
-            <div className="section-head">
+            <div className="specs-faq-divider" />
+
+            <div className="section-head" style={{ marginTop: '48px' }}>
               <div className="head-badge">
                 <HelpIcon width={14} height={14} />
                 <span>OPERATIONAL FAQ</span>

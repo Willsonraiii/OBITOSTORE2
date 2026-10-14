@@ -95,7 +95,7 @@ export function BotStage({ phase, busy }) {
 }
 
 /* ---------- Live Optimizing Terminal ---------- */
-function LiveTerminal({ log = [], busy, phase }) {
+function LiveTerminal({ log = [], busy, phase, queuePos }) {
   const terminalEndRef = useRef(null);
 
   useEffect(() => {
@@ -115,10 +115,20 @@ function LiveTerminal({ log = [], busy, phase }) {
           <span>Live Optimizing Terminal</span>
         </div>
         <div className="terminal-meta">
-          <span>{phase === 'done' ? 'Completed' : phase === 'process' ? 'Processing' : phase === 'queued' ? 'Queued' : 'Stream Active'}</span>
+          <span>{phase === 'done' ? 'Completed' : phase === 'process' ? 'Processing' : phase === 'queued' ? (queuePos ? `Queued #${queuePos}` : 'Queued') : 'Stream Active'}</span>
         </div>
       </div>
       <div className="terminal-body">
+        {phase === 'queued' && (
+          <div className="terminal-line obito">
+            <span className="term-num">QUE</span>
+            <span className="term-text">
+              {queuePos
+                ? `[queue] Position #${queuePos} in line · Waiting for active master to complete`
+                : '[queue] Registered in processing pipeline · Holding slot safely'}
+            </span>
+          </div>
+        )}
         {log.length === 0 ? (
           <div className="terminal-line dim">
             <span className="term-num">00</span>
@@ -370,15 +380,38 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   h264Ref.current = ensureH264;
   const [uploadSpeed, setUploadSpeed] = useState('');
   const uploadStartTime = useRef(0);
+  const [queuePos, setQueuePos] = useState(null);
+  const [serverQueue, setServerQueue] = useState({ busy: false, queuedCount: 0 });
 
   const headers = useCallback(() => (keyRef.current ? { 'x-access-token': keyRef.current } : {}), []);
   const withKey = useCallback((url) => (keyRef.current ? url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(keyRef.current) : url), []);
   useEffect(() => () => clearInterval(timer.current), []);
 
-  // Keep the screen awake while this page is actively transferring or processing.
+  // Poll server queue status while on confirm screen to inform user of busy engine
+  useEffect(() => {
+    if (phase !== 'confirm') return;
+    let mounted = true;
+    const checkQueue = async () => {
+      try {
+        const res = await fetch('/api/queue/status');
+        if (res.ok) {
+          const d = await res.json();
+          if (mounted) setServerQueue(d);
+        }
+      } catch {}
+    };
+    checkQueue();
+    const interval = setInterval(checkQueue, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [phase]);
+
+  // Keep the screen awake while this page is actively transferring, processing, or downloading.
   // Browsers may release the lock when hidden; request it again on return.
   useEffect(() => {
-    const active = phase === 'upload' || phase === 'queued' || phase === 'process' || dl.state === 'loading';
+    const active = phase === 'upload' || phase === 'queued' || phase === 'process' || phase === 'done' || dl.state === 'loading';
     if (!active || !navigator.wakeLock?.request) return;
     let mounted = true;
     let lock = null;
@@ -409,6 +442,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     setNeedKey(askKey);
     setPhase('error');
     setUploadSpeed('');
+    setQueuePos(null);
     const f = fileRef.current;
     if (f) {
       const m = readMap();
@@ -437,11 +471,19 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
         if (Array.isArray(job.log)) setLog(job.log);
         if (job.probeIn) setSrc(job.probeIn);
         if (job.probeOut) setOut(job.probeOut);
-        if (job.status === 'queued') setPhase('queued');
-        else if (job.status === 'processing') { setPhase('process'); setPct(job.progress || 0); }
-        else if (job.status === 'failed') fail(job.error || 'Optimization failed.');
-        else if (job.status === 'done') {
+        if (job.status === 'queued') {
+          setPhase('queued');
+          if (job.queuePosition) setQueuePos(job.queuePosition);
+        } else if (job.status === 'processing') {
+          setPhase('process');
+          setPct(job.progress || 0);
+          setQueuePos(null);
+        } else if (job.status === 'failed') {
+          setQueuePos(null);
+          fail(job.error || 'Optimization failed.');
+        } else if (job.status === 'done') {
           clearInterval(timer.current);
+          setQueuePos(null);
           setResult({ id, bytes: job.outputBytes || 0, srcFps: job.result?.derived?.sourceFps, derived: job.result?.derived });
           setPct(100);
           setPhase('done');
@@ -817,6 +859,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     setOut(null);
     setPct(0);
     setError('');
+    setQueuePos(null);
     upId.current = null;
     jobId.current = null;
     fileRef.current = null;
@@ -916,7 +959,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'confirm' && 'Check video details'}
             {phase === 'upload' && 'Uploading video...'}
             {phase === 'paused' && 'Upload paused'}
-            {phase === 'queued' && 'Queued for optimization...'}
+            {phase === 'queued' && (queuePos ? `Queued for optimization (Position #${queuePos})` : 'Queued for optimization...')}
             {phase === 'process' && 'Optimizing video for TikTok...'}
             {phase === 'done' && 'Your video is ready!'}
             {phase === 'error' && 'Notice'}
@@ -926,7 +969,9 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'confirm' && `${file?.name} · zero re-encoding loss`}
             {phase === 'upload' && `${file?.name} (${fmt(file?.size || 0)})${uploadSpeed ? ' · ' + uploadSpeed : ''}`}
             {phase === 'paused' && `${Math.round(pct)}% uploaded · Tap Resume to continue`}
-            {phase === 'queued' && 'Preparing container remux...'}
+            {phase === 'queued' && (queuePos && queuePos > 1
+              ? `Position #${queuePos} in queue · Another video is optimizing · Auto-starts next`
+              : 'Another master video is optimizing · Auto-starts immediately')}
             {phase === 'process' && 'Repackaging container with zero quality loss...'}
             {phase === 'done' && `Output size: ${fmt(result?.bytes || 0)}`}
             {phase === 'error' && error}
@@ -1041,10 +1086,26 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
         )}
 
         {/* Live Optimizing Terminal */}
-        <LiveTerminal log={log} busy={busy} phase={phase} />
+        <LiveTerminal log={log} busy={busy} phase={phase} queuePos={queuePos} />
 
         {/* Action Buttons for Non-Idle States */}
         <div className="dropzone-controls">
+          {phase === 'queued' && (
+            <div className="queued-status-card">
+              <div className="queued-status-pulse">
+                <span className="queued-spinner" />
+                <span className="queued-label">
+                  {queuePos ? `HOLDING QUEUE POSITION #${queuePos}` : 'SERVER REMUX QUEUE ACTIVE'}
+                </span>
+              </div>
+              <p className="queued-sub-text">
+                {queuePos && queuePos > 1
+                  ? `There are ${queuePos - 1} video(s) ahead in line. Your video is safely staged and will begin remuxing automatically.`
+                  : 'Another master video is currently remuxing on the engine. Your video is staged on NVMe and will auto-start next.'}
+              </p>
+            </div>
+          )}
+
           {phase === 'upload' && (
             <button type="button" className="btn-secondary" onClick={pause}>
               <PauseIcon width={18} height={18} /> Pause upload
@@ -1059,6 +1120,18 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
           {phase === 'confirm' && (
             <div className="confirm-buttons">
+              {serverQueue.busy && (
+                <div className="queue-busy-banner">
+                  <div className="queue-busy-header">
+                    <span className="queue-busy-dot" />
+                    <span className="queue-busy-badge">SERVER ENGINE BUSY</span>
+                    <span className="queue-busy-count">Holding Position #{serverQueue.queuedCount + 1}</span>
+                  </div>
+                  <p className="queue-busy-msg">
+                    Another master video is currently processing on the server. When you start, your video will safely hold queue position #{(serverQueue.queuedCount || 0) + 1} and auto-start immediately when ready.
+                  </p>
+                </div>
+              )}
               <SafeMetalFx preset="chromatic" strength={1} theme="dark" innerShadow>
                 <button
                   type="button"

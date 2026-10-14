@@ -136,9 +136,18 @@ function validJobId(id) {
 }
 
 function publicJob(job) {
+  let queuePosition = null;
+  if (job.status === 'queued') {
+    const queuedJobs = [...jobs.values()]
+      .filter((j) => j.status === 'queued')
+      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    const idx = queuedJobs.findIndex((j) => j.id === job.id);
+    queuePosition = idx >= 0 ? idx + 1 : 1;
+  }
   return {
     id: job.id,
     status: job.status,
+    queuePosition,
     mode: job.mode ?? 'hdr',
     preset: job.preset ?? 'original',
     result: job.result ?? null,
@@ -347,8 +356,8 @@ setInterval(() => {
   for (const [id, f] of failedKeyAttempts) if (now - f.first > KEY_WINDOW_MS && now > f.lockedUntil) failedKeyAttempts.delete(id);
 }, 60 * 1000).unref();
 app.use('/api', async (req, res, next) => {
-  // Inspection is public; optimization, jobs and library remain protected.
-  if (req.path === '/inspect' || req.path === '/inspect-link') return next();
+  // Inspection and queue status are public; optimization, jobs and library remain protected.
+  if (req.path === '/inspect' || req.path === '/inspect-link' || req.path === '/queue/status') return next();
   // Public auth & referral redemption endpoints
   if (req.path === '/auth/redeem-referral' || req.path === '/auth/login') return next();
 
@@ -564,6 +573,21 @@ app.get('/api/network', async (_req, res) => {
   if (Date.now() - netCache.at > 10000) netCache = { at: Date.now(), value: await readWifiName() };
   const ssid = netCache.value ? String(netCache.value).slice(0, 64) : null;
   res.json({ ssid, wired: !ssid });
+});
+
+// Real-time server processing engine & queue status
+app.get('/api/queue/status', (_req, res) => {
+  const queuedJobs = [...jobs.values()].filter((j) => j.status === 'queued');
+  const activeJob = [...jobs.values()].find((j) => j.status === 'processing');
+  res.json({
+    busy: processing || !!activeJob,
+    queuedCount: queuedJobs.length,
+    activeJob: activeJob ? {
+      stage: activeJob.stage || 'optimizing',
+      progress: activeJob.progress || 0,
+      mode: activeJob.mode || 'hdr',
+    } : null,
+  });
 });
 
 // --- TikTok Inspector (read-only): probes an uploaded video, then deletes it immediately ---
@@ -1045,6 +1069,10 @@ app.get('/api/jobs/:id/download', (req, res) => {
   if (!job) return res.status(404).json({ error: 'Unknown job.' });
   if (job.status !== 'done') return res.status(409).json({ error: `Job is ${job.status}, not done.` });
 
+  // Disable socket timeouts during large file transfers to prevent Safari dropouts
+  req.socket?.setTimeout(0);
+  res.setTimeout?.(0);
+
   const baseName = (job.fileName || 'video').replace(/\.[^.]+$/, '');
   const downloadName = `${baseName}-obito-${job.mode}.mp4`;
 
@@ -1091,8 +1119,10 @@ app.use(express.static(PUBLIC_DIR, {
   setHeaders: (res, p) => { if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-store'); },
 }));
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`RTX online service listening on http://0.0.0.0:${PORT}`);
   console.log(`Pipeline: ${PIPELINE_TOOL}`);
   console.log(`Jobs dir: ${JOBS_DIR} (TTL ${Math.round(JOB_TTL_MS / 60000)} min)`);
 });
+server.keepAliveTimeout = 75000;
+server.headersTimeout = 80000;

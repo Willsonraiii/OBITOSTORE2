@@ -1063,31 +1063,62 @@ app.get('/api/jobs/:id', (req, res) => {
   res.json(publicJob(job));
 });
 
-app.get('/api/jobs/:id/download', (req, res) => {
+app.get('/api/jobs/:id/download', async (req, res) => {
   if (!validJobId(req.params.id)) return res.status(400).json({ error: 'Bad job id.' });
   const job = jobs.get(req.params.id);
   if (!job) return res.status(404).json({ error: 'Unknown job.' });
   if (job.status !== 'done') return res.status(409).json({ error: `Job is ${job.status}, not done.` });
 
-  // Disable socket timeouts during large file transfers to prevent Safari dropouts
+  const statInfo = await stat(job.outputPath).catch(() => null);
+  if (!statInfo || !statInfo.size) return res.status(404).json({ error: 'Output video not found on server.' });
+
+  // Disable socket timeouts & enable TCP no-delay for immediate packet forwarding
   req.socket?.setTimeout(0);
+  req.socket?.setNoDelay(true);
   res.setTimeout?.(0);
 
   const baseName = (job.fileName || 'video').replace(/\.[^.]+$/, '');
   const downloadName = `${baseName}-obito-${job.mode}.mp4`;
+  const encodedName = encodeURIComponent(downloadName);
 
+  // High-performance headers for Cloudflare CDN edge, Safari, and parallel download managers
   res.setHeader('Accept-Ranges', 'bytes');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable Cloudflare / Nginx proxy buffering
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodedName}`);
+  res.setHeader('Cache-Control', 'public, max-age=14400, stale-while-revalidate=86400');
 
-  res.download(job.outputPath, downloadName, { acceptRanges: true, cacheControl: true }, (error) => {
-    if (error) {
-      if (error.code !== 'ECONNABORTED' && !res.headersSent) {
-        console.error(`[job ${job.id}] download error: ${error.message}`);
-      }
-      return;
+  const range = req.headers.range;
+  if (range) {
+    // RFC 7233 byte-range handling (resumable downloads, seekable media, parallel chunking)
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : statInfo.size - 1;
+
+    if (isNaN(start) || start >= statInfo.size || end >= statInfo.size || start > end) {
+      res.setHeader('Content-Range', `bytes */${statInfo.size}`);
+      return res.status(416).end();
     }
-    console.log(`[job ${job.id}] downloaded successfully (${downloadName})`);
-  });
+
+    const chunksize = (end - start) + 1;
+    res.status(206);
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${statInfo.size}`);
+    res.setHeader('Content-Length', chunksize);
+
+    const stream = createReadStream(job.outputPath, { start, end, highWaterMark: 1024 * 1024 });
+    stream.pipe(res);
+    stream.on('error', (err) => {
+      if (!res.headersSent) res.status(500).end();
+    });
+  } else {
+    // Full streaming with 1 MB chunk buffer to maximize pipe saturation
+    res.setHeader('Content-Length', statInfo.size);
+    const stream = createReadStream(job.outputPath, { highWaterMark: 1024 * 1024 });
+    stream.pipe(res);
+    stream.on('error', (err) => {
+      if (!res.headersSent) res.status(500).end();
+    });
+  }
 });
 
 app.delete('/api/jobs/:id', (req, res) => {

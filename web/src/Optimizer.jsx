@@ -885,50 +885,53 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     setKept(null);
   };
 
-  const prepareFile = async () => {
-    if (!result?.id || dl.state === 'loading') return;
-    setDl({ state: 'loading', pct: 0 });
-    try {
-      const r = await fetch(withKey('/api/jobs/' + result.id + '/download'), { headers: headers() });
-      if (!r.ok) throw new Error('Download failed');
-      const reader = r.body?.getReader();
-      const len = Number(r.headers.get('content-length') || 0);
-      let rcv = 0;
-      const chunks = [];
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          rcv += value.length;
-          if (len) setDl({ state: 'loading', pct: (rcv / len) * 100 });
-        }
-      } else {
-        chunks.push(await r.arrayBuffer());
-      }
-      const blob = new Blob(chunks, { type: 'video/mp4' });
-      setDl({ state: 'ready', blob, pct: 100 });
-    } catch {
-      setDl({ state: 'error', pct: 0 });
+  const handleDirectDownload = () => {
+    if (!result?.id) return;
+    const downloadUrl = withKey('/api/jobs/' + result.id + '/download');
+    const name = (file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4';
+
+    // Direct native browser streaming (zero JS RAM usage)
+    if (isStandalone()) {
+      window.open(downloadUrl, '_blank');
+      return;
     }
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = name;
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+    }, 1000);
   };
 
   const saveFile = async () => {
-    if (!dl.blob) return;
+    if (!result?.id) return;
     const name = (file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-lossless.mp4';
-    const f = new File([dl.blob], name, { type: 'video/mp4' });
-    if (navigator.canShare && navigator.canShare({ files: [f] })) {
-      try {
-        await navigator.share({ files: [f], title: name });
-        return;
-      } catch { /* fallback to anchor download */ }
+
+    // For large files (> 40 MB), use direct native download to prevent mobile heap crashes
+    if (file && file.size > 40 * 1024 * 1024) {
+      handleDirectDownload();
+      return;
     }
-    const url = URL.createObjectURL(dl.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    try {
+      setDl({ state: 'loading', pct: 0 });
+      const res = await fetch(withKey('/api/jobs/' + result.id + '/download'), { headers: headers() });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const f = new File([blob], name, { type: 'video/mp4' });
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [f] })) {
+        await navigator.share({ files: [f], title: name });
+      } else {
+        handleDirectDownload();
+      }
+    } catch {
+      handleDirectDownload();
+    } finally {
+      setDl({ state: 'idle', pct: 0 });
+    }
   };
 
   const onDrop = (e) => {
@@ -1171,41 +1174,29 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
           {phase === 'done' && result && (
             <>
               <div className="done-buttons flex flex-wrap items-center justify-center gap-3">
-              {!isStandalone() ? (
                 <a
                   href={withKey('/api/jobs/' + result.id + '/download')}
                   download={(file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4'}
+                  target={isStandalone() ? '_blank' : undefined}
+                  rel="noopener noreferrer"
                   className="btn-download-master"
                 >
                   <DownloadIcon width={20} height={20} />
                   <span>Download Master Video</span>
                 </a>
-              ) : dl.state === 'ready' ? (
-                <button
-                  type="button"
-                  className="btn-download-master"
-                  onClick={saveFile}
-                >
-                  <ShareIcon width={20} height={20} />
-                  <span>Save Video / Share</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-download-master"
-                  onClick={prepareFile}
-                  disabled={dl.state === 'loading'}
-                >
-                  <DownloadIcon width={20} height={20} />
-                  <span>
-                    {dl.state === 'loading'
-                      ? `Preparing (${Math.round(dl.pct)}%)`
-                      : dl.state === 'error'
-                      ? 'Retry Download'
-                      : 'Download Master Video'}
-                  </span>
-                </button>
-              )}
+
+                {typeof navigator !== 'undefined' && navigator.canShare && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={saveFile}
+                    title="Share video or save to device"
+                  >
+                    <ShareIcon width={16} height={16} />
+                    <span>Share</span>
+                  </button>
+                )}
+
                 <button type="button" className="btn-secondary" onClick={reset}>
                   <RefreshIcon width={16} height={16} /> Optimize another
                 </button>

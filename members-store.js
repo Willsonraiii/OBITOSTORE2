@@ -11,10 +11,13 @@ const BACKUP_FILE = path.join(PERSISTENT_DIR, 'members.backup.json');
 const SNAPSHOTS_DIR = path.join(PERSISTENT_DIR, 'snapshots');
 const LEGACY_FILE = path.join(ROOT, 'members.json');
 
-// Cloud Gist persistence configuration — guarantees survival across cloud container rebuilds
-const GIST_ID = process.env.MEMBERS_GIST_ID || '8f01600ac9ff37e2a6832a3a3cc4a1b7';
-const _gt = [103, 104, 111, 95, 55, 74, 106, 102, 83, 88, 102, 112, 57, 83, 107, 70, 97, 109, 85, 57, 57, 78, 108, 84, 90, 48, 48, 77, 100, 120, 74, 78, 49, 73, 50, 97, 118, 69, 88, 80];
-const GIST_TOKEN = process.env.MEMBERS_GIST_TOKEN || String.fromCharCode(..._gt);
+// Cloud Gist persistence configuration — guarantees survival across cloud container rebuilds.
+// SECRETS COME FROM THE ENVIRONMENT ONLY. Never hard-code a token here: this repo is public.
+const GIST_ID = process.env.MEMBERS_GIST_ID || '';
+const GIST_TOKEN = process.env.MEMBERS_GIST_TOKEN || '';
+if (GIST_ID && !GIST_TOKEN) {
+  console.warn('[members-store] MEMBERS_GIST_ID is set but MEMBERS_GIST_TOKEN is missing — cloud sync disabled.');
+}
 
 async function fetchGistStore() {
   if (!GIST_ID) return null;

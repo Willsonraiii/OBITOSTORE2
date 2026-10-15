@@ -19,7 +19,7 @@ RUN npm ci --omit=dev || npm install --omit=dev
 COPY lib ./lib
 COPY tools ./tools
 COPY public ./public
-COPY members-store.js members.json tiktok-store.js tiktok-routes.js server-rtx-online.js ./
+COPY members-store.js tiktok-store.js tiktok-routes.js server-rtx-online.js ./
 
 # Default port 7860 for Hugging Face Spaces (dynamically overridden by $PORT on other platforms)
 ENV PORT=7860

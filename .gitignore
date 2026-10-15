@@ -10,3 +10,4 @@ tmp/
 *.bin
 library.json
 .kilo/
+members.json

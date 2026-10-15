@@ -34,7 +34,7 @@ import multer from 'multer';
 import { spawn, spawnSync, execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdir, rm, stat, rename, copyFile, unlink, link, readFile, writeFile, readdir, utimes, truncate } from 'node:fs/promises';
-import { existsSync, createReadStream, createWriteStream } from 'node:fs';
+import { existsSync, createReadStream, createWriteStream, readdirSync, readFileSync } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -356,6 +356,18 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, f] of failedKeyAttempts) if (now - f.first > KEY_WINDOW_MS && now > f.lockedUntil) failedKeyAttempts.delete(id);
 }, 60 * 1000).unref();
+// TikTok "URL properties" verification: serve any tiktok<signature>.txt found in public/ at ANY path depth,
+// so verifying https://host/, https://host/terms.html/ or https://host/privacy.html/ all succeed.
+const tiktokVerificationFiles = new Map(
+  readdirSync(PUBLIC_DIR).filter((f) => /^tiktok[A-Za-z0-9_-]{16,}\.txt$/.test(f)).map((f) => [f, readFileSync(path.join(PUBLIC_DIR, f), 'utf8').trim()])
+);
+if (tiktokVerificationFiles.size) console.log('[tiktok] site verification files:', [...tiktokVerificationFiles.keys()].join(', '));
+app.get(/\/(tiktok[A-Za-z0-9_-]{16,}\.txt)$/, (req, res, next) => {
+  const body = tiktokVerificationFiles.get(req.params[0]);
+  if (!body) return next();
+  res.type('text/plain').set('Cache-Control', 'no-store').send(body);
+});
+
 app.use('/api', async (req, res, next) => {
   // Inspection and queue status are public; optimization, jobs and library remain protected.
   if (req.path === '/inspect' || req.path === '/inspect-link' || req.path === '/queue/status') return next();

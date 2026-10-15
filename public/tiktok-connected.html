@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>TikTok connected — Obito Studio</title>
+<meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font-family:system-ui,sans-serif;background:#0b1d33;color:#fff;display:grid;place-items:center;height:100vh;margin:0;text-align:center}p{max-width:36ch}</style>
+</head><body><p id="m">Finishing TikTok sign-in…</p>
+<script>
+  var q = new URLSearchParams(location.search);
+  var ok = q.get('ok') === '1';
+  var msg = { type: 'obito-tiktok', ok: ok, reason: q.get('reason') || '', user: q.get('user') || '' };
+  document.getElementById('m').textContent = ok ? 'TikTok connected. You can close this window.' : ('TikTok sign-in failed: ' + (msg.reason || 'unknown error'));
+  if (window.opener && !window.opener.closed) {           // popup flow: tell the app and close
+    try { window.opener.postMessage(msg, location.origin); } catch (e) {}
+    setTimeout(function () { window.close(); }, 400);
+  } else {                                                 // full-redirect flow: go back to the optimizer
+    setTimeout(function () { location.replace('/?tiktok=' + (ok ? 'connected' : 'failed') + '#optimizer'); }, 800);
+  }
+</script></body></html>

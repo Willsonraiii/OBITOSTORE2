@@ -1,4 +1,5 @@
 import React, { Component, useCallback, useEffect, useRef, useState } from 'react';
+import TikTokPostSheet from './TikTokPostSheet.jsx';
 import { BotAvatar } from 'bot-avatars';
 import { MetalFx } from 'metal-fx';
 import {
@@ -362,6 +363,8 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   const [drag, setDrag] = useState(false);
   const [kept, setKept] = useState(null);
   const [dl, setDl] = useState({ state: 'idle', pct: 0 });
+  const [ttOpen, setTtOpen] = useState(false);          // Post to TikTok sheet
+  const [ttCfg, setTtCfg] = useState({ enabled: false }); // GET /api/tiktok/config
   const input = useRef(null);
   const xhrRef = useRef(null);
   const timer = useRef(null);
@@ -384,6 +387,32 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   const [serverQueue, setServerQueue] = useState({ busy: false, queuedCount: 0 });
 
   const headers = useCallback(() => (keyRef.current ? { 'x-access-token': keyRef.current } : {}), []);
+
+  // Is "Post to TikTok" configured on this server?  (public endpoint)
+  useEffect(() => {
+    fetch('/api/tiktok/config').then((r) => r.json()).then(setTtCfg).catch(() => {});
+  }, []);
+
+  // If the TikTok sign-in had to use a full-page redirect (popup blocked), the page reloaded and
+  // the finished job state was lost — restore it from the server and reopen the sheet.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (!q.get('tiktok')) return;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('obito.tiktokReturnJob') || 'null'); localStorage.removeItem('obito.tiktokReturnJob'); } catch { /* ignore */ }
+    window.history.replaceState(null, '', window.location.pathname + '#optimizer');
+    if (!saved?.jobId || Date.now() - (saved.at || 0) > 60 * 60 * 1000) return;
+    fetch('/api/jobs/' + saved.jobId, { headers: headers() }).then((r) => r.ok ? r.json() : null).then((job) => {
+      if (!job || job.status !== 'done') return;
+      if (job.probeIn) setSrc(job.probeIn);
+      if (job.probeOut) setOut(job.probeOut);
+      setFile({ name: saved.fileName || 'video.mp4' });
+      setResult({ id: job.id, bytes: job.outputBytes || 0, srcFps: job.result?.derived?.sourceFps, derived: job.result?.derived });
+      setPct(100);
+      setPhase('done');
+      if (q.get('tiktok') === 'connected') setTtOpen(true);
+    }).catch(() => {});
+  }, [headers]);
   const withKey = useCallback((url) => (keyRef.current ? url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(keyRef.current) : url), []);
   useEffect(() => () => clearInterval(timer.current), []);
 
@@ -1197,10 +1226,29 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
                   </button>
                 )}
 
+                {ttCfg.enabled && (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-tiktok"
+                    onClick={() => setTtOpen(true)}
+                    title="Post the optimized master to your TikTok account"
+                  >
+                    <ShareIcon width={16} height={16} />
+                    <span>Post to TikTok</span>
+                  </button>
+                )}
+
                 <button type="button" className="btn-secondary" onClick={reset}>
                   <RefreshIcon width={16} height={16} /> Optimize another
                 </button>
               </div>
+              <TikTokPostSheet
+                open={ttOpen}
+                onClose={() => setTtOpen(false)}
+                jobId={result.id}
+                apiKey={apiKey}
+                fileName={file?.name}
+              />
             </>
           )}
 

@@ -14,9 +14,7 @@ RUN npm ci --omit=dev || npm install --omit=dev
 COPY lib ./lib
 COPY tools ./tools
 COPY public ./public
-COPY members-store.js ./
-COPY members.json ./
-COPY server-rtx-online.js ./
+COPY members-store.js members.json tiktok-store.js tiktok-routes.js server-rtx-online.js ./
 
 ENV PORT=3005
 EXPOSE 3005

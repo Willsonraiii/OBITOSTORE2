@@ -51,6 +51,7 @@ import {
   toggleClientStatus,
   deleteClient
 } from './members-store.js';
+import { mountTikTokRoutes } from './tiktok-routes.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PIPELINE_TOOL = path.join(ROOT, 'tools', 'rtx-pipeline.js');
@@ -360,6 +361,8 @@ app.use('/api', async (req, res, next) => {
   if (req.path === '/inspect' || req.path === '/inspect-link' || req.path === '/queue/status') return next();
   // Public auth & referral redemption endpoints
   if (req.path === '/auth/redeem-referral' || req.path === '/auth/login' || req.path === '/auth/owner') return next();
+  // TikTok OAuth redirect lands here without an Obito token (identity is in the signed state); config is public.
+  if (req.path === '/tiktok/callback' || req.path === '/tiktok/config') return next();
 
   const id = clientId(req);
   const rec = failedKeyAttempts.get(id);
@@ -1139,6 +1142,10 @@ app.delete('/api/jobs/:id', (req, res) => {
   console.log(`[job ${job.id}] deleted`);
   res.json({ id: job.id, status: 'deleted' });
 });
+
+// "Post to TikTok" (Login Kit + Content Posting API) — see tiktok-routes.js / TIKTOK-UPLOAD-GUIDE.md
+app.use('/api/jobs/:id/tiktok', express.json({ limit: '16kb' }));
+mountTikTokRoutes(app, { jobs, validJobId });
 
 app.use((error, _req, res, _next) => {
   if (error?.code === 'LIMIT_FILE_SIZE') {

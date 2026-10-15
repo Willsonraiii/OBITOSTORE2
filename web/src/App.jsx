@@ -835,6 +835,9 @@ export default function App() {
         </div>
         <div className="footer-right">
           <span>Bit-for-Bit Stream Copy · Multi-Platform Native Fluidity</span>
+          <span className="footer-legal">
+            <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a>
+          </span>
         </div>
       </footer>
 

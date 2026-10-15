@@ -65,8 +65,11 @@ export default function TikTokPostSheet({ open, onClose, jobId, apiKey, fileName
 
   const connect = async () => {
     setErr('');
-    // Open the popup synchronously inside the click so mobile browsers don't block it.
-    popupRef.current = window.open('about:blank', 'obito-tiktok-auth', 'popup=yes,width=520,height=720');
+    // Phones/tablets: TikTok's authorize page misbehaves inside a script-opened Safari tab (endless spinner),
+    // so use a full-page redirect there; the Optimizer restores the job and reopens this sheet on return.
+    // Desktop: open the popup synchronously inside the click so browsers don't block it.
+    const touchDevice = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
+    popupRef.current = touchDevice ? null : window.open('about:blank', 'obito-tiktok-auth', 'popup=yes,width=520,height=720');
     try {
       const r = await fetch('/api/tiktok/connect', { headers: headers() });
       const j = await r.json();

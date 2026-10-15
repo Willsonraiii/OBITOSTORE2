@@ -16,6 +16,11 @@ Values you'll type more than once — keep them handy:
 > Before you start: deploy the `feature/tiktok-post` patch and rebuild, so the URLs above (especially the
 > verification file and `/tiktok-connected.html`) are live. TikTok fetches them during verification.
 
+> **Status 2026-10-16:** Steps 1–6 are DONE (app id `7696831141604771848`, products Login Kit + Content Posting
+> API only, URLs verified, review text pasted, sandbox `obito-test` with the owner's TikTok account as target
+> user, sandbox credentials on Suga, Direct Post "Only me" verified live). A **placeholder demo video** is
+> uploaded in App review and must be replaced. Remaining: Step 7 (record + submit), Step 8 after approval.
+
 ---
 
 ## Step 1 — Developer account + organization (5 min)
@@ -120,10 +125,12 @@ Only when the sandbox test works.
 1. Toggle to **Production**. If you changed anything in the sandbox, **Draft → Import → from sandbox**.
 2. **App review** section:
    - For **each product and scope**, explain how it's used (reuse Step 3 texts).
-   - **Demo video(s)** (max 5, ≤ 50 MB each): one screen recording showing the complete flow:
-     open site → log in with a referral code → drop a clip → optimize → **Post to TikTok** → **Continue with TikTok** → TikTok consent screen → sheet with account name → choose privacy (show that nothing is pre‑selected) → toggles → consent checkbox → Post → "Posted ✓" → TikTok app showing the video.
-     Record at 1080p, keep it under 2 minutes, no background music.
-3. **Save → Submit for review**.
+   - **Demo video(s)** (max 5, ≤ 50 MB each). Plan agreed 2026-10-16 — two uncut iPhone screen recordings (mic off):
+     - **Prep:** TikTok app → Settings and privacy → Privacy → Private account ON. Safari → Settings → Advanced → Website Data → delete `tiktok` entries (avoids the app-handoff loop). In the sheet press **Not you? Disconnect** so the consent page appears on camera.
+     - **Clip 1 (Login Kit + video.publish):** open site → log in → drop a short clip → optimize → **Post to TikTok** → **Continue with TikTok** → TikTok login (phone/email) → consent screen → Authorize → sheet shows the account name → caption → privacy **Only me** (show nothing was pre‑selected) → toggles → consent checkbox → Post → "Posted ✓" → TikTok app → Profile → the video.
+     - **Clip 2 (video.upload):** **Post to TikTok** → **Send to my TikTok drafts** → wait for "Sent to your TikTok inbox ✓" (the sheet shows TikTok's status while it processes) → TikTok app → **Inbox → System notifications** → tap the notification → the draft opens in the editor.
+     - Keep each under 50 MB (Photos → ⓘ shows the size; trim idle waiting in Photos → Edit if needed). Reviewers need to see the consent screen and both results; they don't care about length.
+3. Delete the placeholder video, upload the clips, **Save → Submit for review**. Set the TikTok account back to public afterwards.
 4. Watch the **App review status** (and your email). If rejected, the reason is shown; fix and resubmit.
 
 ## Step 8 — Content Posting API audit (public posting)

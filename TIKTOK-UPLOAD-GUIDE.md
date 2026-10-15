@@ -87,7 +87,14 @@ TIKTOK_SCOPES=user.info.basic,video.upload,video.publish
 TIKTOK_AUDITED=false
 TIKTOK_STATE_SECRET=$(openssl rand -hex 32)   # signs the OAuth state
 TIKTOK_TOKEN_KEY=$(openssl rand -hex 32)      # AES-256-GCM key for stored tokens — keep it, losing it = everyone reconnects
+# optional
+# TIKTOK_FORCE_CONSENT=1                      # adds disable_auto_auth=1 — DO NOT USE: TikTok's page loops (see §6)
+# TIKTOK_GIST_ID= / TIKTOK_GIST_TOKEN=        # override the members Gist used to mirror tiktok-accounts.json
 ```
+
+**Persistence (2026-10-16):** the Suga container disk is wiped on every redeploy, so `tiktok-accounts.json` is
+mirrored (encrypted records only) into the private Gist configured by `MEMBERS_GIST_ID` / `MEMBERS_GIST_TOKEN`
+and restored on boot when the local file is missing. Without `TIKTOK_TOKEN_KEY` the mirror stays off.
 
 Restart the service. The log shows `[tiktok] enabled · scopes … · audited=false · redirect …`.
 If the three main vars are missing the feature is simply off (`/api/tiktok/config` → `enabled:false`, no button rendered).
@@ -229,18 +236,38 @@ a 75 MB master → 7 chunks with the remainder merged into the last one, memory 
   `localStorage` + `GET /api/jobs/:id` on return (`?tiktok=connected`).
 * **Every TikTok identity maps to one Obito identity** (`owner` or `client:<clientId>`). In open/dev
   mode with no access control everyone shares `anonymous` — don't run it that way in production.
+* **`disable_auto_auth=1` loops (Oct 2026, sandbox key).** TikTok documents it as "always show the consent
+  page", but the authorize page answered with an endless `…/v2/auth/authorize/&error=invalid_request&logid=…`
+  reload loop on desktop and iPhone. It is off by default (`TIKTOK_FORCE_CONSENT`). To show the consent page
+  again, **Disconnect** (now awaits `POST /v2/oauth/revoke/`, refreshing the token first if needed) or remove
+  the app in TikTok → Settings and privacy → Security & permissions → Apps and services.
+* **iPhone Safari handoff.** With an existing tiktok.com web session, TikTok's mobile authorize page hands the
+  request to the TikTok app, which rejects the sandbox client key → the same loop. Workaround until approval:
+  Settings → Safari → Advanced → Website Data → delete the `tiktok` entries, then log in with phone/email.
+  Touch devices use a full-page redirect (`TikTokPostSheet.connect()`), desktops a popup; both return via
+  `/tiktok-connected.html`.
+* **Drafts land in Inbox → System notifications**, not in Profile → Drafts. Status stays `PROCESSING_UPLOAD`
+  until TikTok has processed the file (minutes; HDR seems slower), then `SEND_TO_USER_INBOX`. The sheet shows
+  the raw status, bytes received and elapsed time; the server logs every status change. As of 2026-10-16
+  `SEND_TO_USER_INBOX` has not been observed yet — investigate with those lines if it keeps failing.
+* **Server restart mid-post.** Jobs live in memory; after a redeploy `GET /api/jobs/:id/tiktok` is 404 and the
+  sheet shows "Lost track of this upload…" (TikTok keeps processing on its side).
+* **Unaudited rule, confirmed live:** Direct Post needs `SELF_ONLY` **and** the creator's account set to Private
+  at posting time (TikTok app → Settings and privacy → Privacy → Private account), max 5 creators / 24 h.
+  Drafts are exempt. The account can go public again afterwards.
 
 ---
 
 ## 7. Rollout checklist
 
-- [ ] Portal app created, Login Kit + Content Posting API added, Web redirect URI set
-- [ ] URL verification file reachable at the root and verified
-- [ ] privacy.html / terms.html updated and linked in the portal
-- [ ] Sandbox credentials in `.env`, service restarted, `/api/tiktok/config` → `enabled:true`
-- [ ] Connect flow works on the real domain (popup and redirect fallback)
-- [ ] Inbox/draft post of a real optimized clip lands in your TikTok inbox
-- [ ] Direct post (Only me) completes → `PUBLISH_COMPLETE`
-- [ ] Inspector confirms the published video kept 60 fps / HDR (API path vs Studio path)
-- [ ] Demo video recorded, app review + Content Posting API audit submitted
+- [x] Portal app created, Login Kit + Content Posting API added, Web redirect URI set
+- [x] URL verification file reachable at the root and verified
+- [x] privacy.html / terms.html updated and linked in the portal
+- [x] Sandbox credentials on Suga, `/api/tiktok/config` → `enabled:true`
+- [x] Connect flow works on the real domain (desktop popup; iPhone redirect — see the Safari note in §6)
+- [ ] Inbox/draft post of a real optimized clip lands in your TikTok inbox (`SEND_TO_USER_INBOX` not yet seen)
+- [x] Direct post (Only me) completes → `PUBLISH_COMPLETE` (2026-10-16)
+- [ ] Inspector confirms the published video kept 60 fps / HDR (user: a private→public switch seemed to lose HDR; parked)
+- [ ] Demo clips recorded, app review submitted (next), then Content Posting API audit
 - [ ] After approval: production credentials, `TIKTOK_AUDITED=true`, redeploy
+- [ ] Then: "Connected accounts" dashboard section (linked TikTok name/avatar + Disconnect)

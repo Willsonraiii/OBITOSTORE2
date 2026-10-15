@@ -1,5 +1,13 @@
 # Vague Transcode (Obito Studio) — Migration & Handoff Notes
 
+> **LATEST HANDOFF (2026-10-16) — TikTok integration, ready for the demo + review submission.**
+> Full status, env names, lessons and the ordered next steps are in `MIGRATION.md` → "CURRENT STATUS — 2026-10-16". Short version:
+> - Live site = Suga Cloud, auto-deploys every push to `origin/online-rtx-service` (upstream tip at handoff: `1d2f68d`). Agent delivers `.patch` files; user applies with `git am --3way` and pushes (`COMMANDS.md` §P has Windows + Linux commands).
+> - "Post to TikTok" is live with sandbox credentials. Direct Post "Only me" works end to end; drafts upload fine but `SEND_TO_USER_INBOX` has not been seen yet (drafts land in TikTok Inbox → System notifications, not Profile → Drafts).
+> - TikTok connections and members now survive redeploys (encrypted Gist mirror).
+> - Tomorrow: record 2 demo clips on the iPhone (clear tiktok.com website data in Safari first, account Private, Disconnect first), replace the placeholder video in Portal → App review, Submit. Then the Direct Post audit, then the "Connected accounts" dashboard section.
+> - Do not reintroduce: `disable_auto_auth=1` (loops), color-grade presets (removed on purpose), extra TikTok products (only Login Kit + Content Posting API).
+
 > **LATEST PRODUCTION HANDOFF (2026-10-12):**
 > **Current Active Branch:** `online-rtx-service` (mirrored to `main`).
 > **Production Service:** Running live on port `3005` via systemd `obito-studio.service` at `https://obitostudio.willsonrai.com.np`.

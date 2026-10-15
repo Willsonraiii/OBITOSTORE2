@@ -3,7 +3,8 @@
 Windows = PowerShell 5 (no `&&` — run lines one by one). Linux = bash.
 > Current status is in MIGRATION.md (2026-10-11). Several legacy sections below describe older deployment and upload parameters; verify against actual code before copying commands. Never commit a real ACCESS_TOKEN.
 
-Repo folders: Windows `%USERPROFILE%\Desktop\vague-transcode-4k-test` · Linux `~/Desktop/vague-transcode`.
+Repo folders: Windows `%USERPROFILE%\Desktop\vague-transcode-4k-test` (older sessions; if it is missing use `%USERPROFILE%\Desktop\vague-transcode`) · Linux `~/Desktop/vague-transcode`.
+Production = Suga Cloud, auto-deploys on push — see **§P** (patch workflow) and **§T** (TikTok) at the end of this file; they are the current, verified sections.
 Output folder on both: `out/` inside the repo. Source videos are never touched.
 
 ---
@@ -212,9 +213,9 @@ cd ~/Desktop/vague-transcode
 node --max-old-space-size=50 tools/rtx-pipeline.js "/path/to/source.mp4" "out/output.mp4"
 ```
 
-## L10. Color Grade Presets (CLI & Pipeline)
+## L10. Color Grade Presets — REMOVED (2026-10, user decision: "i dont want color preset"). Do not reintroduce. Historical text follows.
 
-OBITO STUDIO includes 6 curated aesthetic looks:
+~~OBITO STUDIO includes 6 curated aesthetic looks:~~
 1. `original` — 100% Stream Copy Lossless (zero re-encoding, instant 3-second container remux).
 2. `vibrant` — Vibrant Pop (contrast +12%, saturation +24%, unsharp mask).
 3. `cinematic` — Cinematic Warm (golden film balance, soft lifted shadows).
@@ -403,3 +404,64 @@ cd $HOME\Desktop\vague-transcode-4k-test
 git pull --ff-only origin online-rtx-service
 git log -1 --format="%h %s"
 ```
+
+---
+
+# P — PATCH WORKFLOW (how agent changes reach production)
+
+The AI agent cannot push. It commits on top of the current `origin/online-rtx-service` tip and hands over a `.patch` file (1 commit unless it says otherwise). Pushing triggers the Suga rebuild (~2–3 min). A redeploy restarts the server: in-flight jobs are lost; members and TikTok connections are restored from the Gist.
+
+## P1. Windows (PowerShell — one line at a time, no `&&`)
+
+```powershell
+cd "$HOME\Desktop\vague-transcode-4k-test"      # if missing, try "$HOME\Desktop\vague-transcode"
+git fetch origin
+git status                                       # must be clean, on branch online-rtx-service
+git pull --ff-only origin online-rtx-service
+git am --3way "$HOME\Downloads\NAME.patch"
+git push origin online-rtx-service
+```
+
+## P2. Linux (bash)
+
+```bash
+cd ~/Desktop/vague-transcode && git fetch origin && git pull --ff-only origin online-rtx-service && git am --3way ~/Downloads/NAME.patch && git push origin online-rtx-service
+```
+
+## P3. If `git am` complains
+
+- `Patch already applied` / `No changes` → `git am --skip` (that commit is already upstream), then push.
+- Conflict → `git am --abort`, then tell the agent the upstream tip (`git log --oneline -1`) and ask for a rebased patch. Don't hand-edit.
+- `Committer identity unknown` → `git config --global user.name "Willson"` and `git config --global user.email "resume@willsonrai.com.np"` once.
+- Windows CRLF warnings (`trailing whitespace`) are harmless.
+
+## P4. Check that it deployed
+
+```bash
+curl -s https://obitostudio.willsonrai.com.np/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'   # must equal the file name in public/assets after the patch
+curl -s https://obitostudio.willsonrai.com.np/api/tiktok/config                                # {"enabled":true,...}
+```
+PowerShell: `(Invoke-WebRequest https://obitostudio.willsonrai.com.np/).Content -match 'assets/index-[A-Za-z0-9_-]+\.js'; $Matches[0]`
+
+---
+
+# T — TIKTOK ("Post to TikTok")
+
+## T1. Server env (Suga → service → Environment). Names only — never paste values into docs or chat.
+`TIKTOK_CLIENT_KEY` `TIKTOK_CLIENT_SECRET` (sandbox pair until approval) · `TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback` · `TIKTOK_SCOPES=user.info.basic,video.upload,video.publish` · `TIKTOK_AUDITED=false` · `TIKTOK_STATE_SECRET` · `TIKTOK_TOKEN_KEY` (64 hex; losing it = everyone reconnects) · optional `TIKTOK_FORCE_CONSENT` (keep unset) · `TIKTOK_GIST_ID`/`TIKTOK_GIST_TOKEN` (default to `MEMBERS_GIST_*`).
+After approval: swap key/secret for the Production pair; after the Direct Post audit: `TIKTOK_AUDITED=true`.
+
+## T2. Manual test (what "works" looks like)
+1. TikTok app → Profile → ☰ → Settings and privacy → Privacy → **Private account ON** (needed for unaudited direct posts).
+2. Site → Optimizer → optimize a short clip → **Post to TikTok** → **Continue with TikTok** → consent → Authorize.
+3. Publish now → caption → **Only me** → consent box → Post → "Posted ✓" → video on your TikTok profile.
+4. Post again → **Send to my TikTok drafts** → "Sent to your TikTok inbox ✓" → TikTok **Inbox → System notifications** → tap → editor opens. (Never in Profile → Drafts.) If the sheet keeps saying "processing", read its "TikTok status:" line.
+5. Logs (Suga → Logs): `[tiktok] enabled · scopes …`, `[tiktok] job <id> -> direct|inbox publish …`, `[tiktok] job <id> … status PROCESSING_UPLOAD|SEND_TO_USER_INBOX|PUBLISH_COMPLETE|FAILED fail_reason=…`, `[tiktok-store] restored N TikTok connection(s) from Gist`.
+
+## T3. Consent page / login loop
+- Consent page missing (auto-approved): sheet → "Not you? Disconnect" (revokes at TikTok) → Continue with TikTok again.
+- iPhone shows a tiktok.com page that reloads forever (`…authorize/&error=invalid_request…`): Settings → Safari → Advanced → Website Data → search `tiktok` → delete, retry, log in with phone/email (not "Log in with TikTok app"). Laptop: click Cancel on "Open xdg-open?/Open TikTok?".
+- Never set `TIKTOK_FORCE_CONSENT` / `disable_auto_auth=1` — it causes that loop.
+
+## T4. Demo + review (see TIKTOK-PORTAL-SETUP.md Step 7)
+Clip 1 = consent → Only me → Posted → Profile. Clip 2 = drafts → Sent ✓ → Inbox notification. ≤50 MB each. Portal → Production → App review → replace placeholder → Submit for review. Then Products → Content Posting API → Direct Post → Apply for audit.

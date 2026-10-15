@@ -1,14 +1,56 @@
 # OBITO STUDIO — The Project Book
 
-Last updated: **2026-10-12**. **Read this file first, along with AGENTS.md and COMMANDS.md.** That is all you need to run, maintain, and expand the project.
+Last updated: **2026-10-16**. **Read this file first, along with AGENTS.md and COMMANDS.md.** That is all you need to run, maintain, and expand the project.
 
 Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-service` (mirrored to `main`).
 
 ---
 
-## CURRENT STATUS — 2026-10-12 (Latest Definitive State)
+## CURRENT STATUS — 2026-10-16 (TikTok integration — read this first)
 
-- **Production Environment**: Linux host on port `3005` managed via systemd `obito-studio.service` (`https://obitostudio.willsonrai.com.np`).
+**Where the code runs**
+- Live site `https://obitostudio.willsonrai.com.np` = **Suga Cloud** container (dashboard.suga.app → project `obitoo` → service `vague-transcode`, Cloudflare in front). It rebuilds automatically on **every push to `origin/online-rtx-service`**, so built assets in `public/` must be committed (`npm --prefix web run build` before committing frontend changes). A redeploy wipes the container disk and restarts the server (in-memory jobs are lost — by design).
+- The AI agent's sandbox cannot push. Workflow: agent builds + commits on a local branch based on the **current upstream tip** → `git format-patch` → user downloads the `.patch` → `git am --3way` → `git push origin online-rtx-service` (exact commands for Windows and Linux in `COMMANDS.md` §P). The agent must say how many commits a patch contains.
+- Persistence without a volume: members/referrals (`members.json`) **and** TikTok connections (`tiktok-accounts.json`, AES-256-GCM encrypted with `TIKTOK_TOKEN_KEY`) are mirrored into the private GitHub Gist (`MEMBERS_GIST_ID` / `MEMBERS_GIST_TOKEN`) and restored on boot (added 2026-10-16, tested with a simulated redeploy).
+
+**TikTok "Post to TikTok" — built, live with SANDBOX credentials**
+- Login Kit + Content Posting API: Direct Post (`video.publish`) and Upload to inbox / drafts (`video.upload`). Files: `tiktok-routes.js`, `tiktok-store.js`, `lib/tiktok-api.js`, `web/src/TikTokPostSheet.jsx`, `public/tiktok-connected.html`. Guides: `TIKTOK-UPLOAD-GUIDE.md` (code + gotchas), `TIKTOK-PORTAL-SETUP.md` (portal + demo + review).
+- Verified live: consent page, creator info, Direct Post "Only me" → `PUBLISH_COMPLETE` (the creator's TikTok account must be **Private** at posting time while the app is unaudited). Drafts: upload accepted, but `SEND_TO_USER_INBOX` **not yet observed** — the last test was still "processing" when a redeploy restarted the server. API drafts arrive as a notification in TikTok **Inbox → System notifications**, never in Profile → Drafts. The sheet now shows TikTok's raw status + elapsed time; Suga logs print `[tiktok] job … status …` on every change.
+- Suga env (names only — never write values in docs): `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` (sandbox pair for now), `TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback`, `TIKTOK_SCOPES=user.info.basic,video.upload,video.publish`, `TIKTOK_AUDITED=false`, `TIKTOK_STATE_SECRET`, `TIKTOK_TOKEN_KEY`. Optional: `TIKTOK_FORCE_CONSENT=1` (adds `disable_auto_auth=1`; currently makes TikTok's page loop — keep OFF), `TIKTOK_GIST_ID` / `TIKTOK_GIST_TOKEN` (override the members Gist).
+- Portal (app id `7696831141604771848`, name "Obito Studio"): products Login Kit + Content Posting API **only** (user's rule: "just 2 products"), Direct Post ON, URLs verified (root, terms, privacy), app-review text pasted (field max 1000 chars), a **placeholder demo video** is uploaded and must be replaced, sandbox `obito-test` with the user's own TikTok account as target user. **Not submitted yet.**
+
+**Lessons that must not be re-learned**
+- `disable_auto_auth=1` on the authorize URL (documented by TikTok) → endless `…/v2/auth/authorize/&error=invalid_request&logid=…` reload loop on desktop AND iPhone with the sandbox key (Oct 2026). Removed. To force the consent page for a demo: sheet → "Not you? Disconnect" (now revokes the grant at TikTok, awaited) or TikTok app → Settings and privacy → Security & permissions → Apps and services → remove Obito Studio.
+- iPhone Safari: when Safari already holds a tiktok.com web session, TikTok's mobile authorize page hands off to the TikTok **app**, which rejects the sandbox key → same loop. Workaround until the app is approved: Settings → Safari → Advanced → Website Data → delete the "tiktok" entries, then "Continue with TikTok" and log in with **phone/email** (not "Log in with TikTok app"). Desktop browsers only show an "Open xdg-open? / Open TikTok?" prompt → Cancel.
+- Unaudited rule (confirmed live): Direct Post only with `SELF_ONLY` **and** account Private, ≤5 creators / 24 h (`unaudited_client_can_only_post_to_private_accounts` otherwise). Drafts are exempt. User observation (unverified; user said leave it): a video posted "Only me" and later switched to Everyone lost HDR/60 fps.
+- The TikTok connection is stored per Obito identity (`owner` / `client:<id>`), so it is shared across the user's devices.
+- Color-grade presets were removed permanently (user decision) — never reintroduce. §L10 in COMMANDS.md is kept only as a tombstone.
+
+**Next steps, in order**
+1. Record the demo on the iPhone (clear TikTok website data first; TikTok account Private; press "Not you? Disconnect" so the consent page is in the recording). Clip 1: site → log in → optimize → Post to TikTok → Continue with TikTok → consent → caption → Only me → consent box → Post → "Posted ✓" → TikTok app Profile. Clip 2: Post to TikTok → Send to my TikTok drafts → wait for "Sent to your TikTok inbox ✓" → TikTok Inbox → System notifications → tap → draft opens. ≤50 MB each, max 5 files. Two uncut clips are fine.
+2. Portal → Production → App review → delete the placeholder → upload clips → **Submit for review**. Set the TikTok account back to public afterwards.
+3. After approval: Suga → Production client key/secret; Products → Content Posting API → Direct Post → **Apply for audit** (same video); when audited → `TIKTOK_AUDITED=true`.
+4. Then the user-requested **"Connected accounts"** section on the Dashboard (linked TikTok display name + avatar + Disconnect). Not before the review is submitted.
+5. Still open: if drafts never reach `SEND_TO_USER_INBOX`, read the "TikTok status:" line / `[tiktok]` log lines and investigate; rotate the old leaked GitHub token (user deferred — remind once, briefly); reissue `OBT-…` client codes.
+
+**Working with this user (standing instructions)**
+- Messages are terse and typo-heavy; answer with very short step lists; put detail in files, never in long chat explanations. No walls of findings.
+- Say up front how many commits a patch contains; when a patch file is regenerated say "re-download, now N commits". Always base patches on the current upstream tip (stale bases conflicted before).
+- Decided, don't reopen: no color presets; only Login Kit + Content Posting API; legal contact `resume@willsonrai.com.np`; demo = iPhone screen recording (two uncut clips accepted); the HDR loss after Only me → Everyone is parked ("leave it"); the leaked old GitHub token is deferred ("leave it" — one-line reminder max).
+- Never commit, print or paste a real `ACCESS_TOKEN`, client secret, Gist token or TikTok token. Keep the repo and the agent workspace small (no test videos or job outputs; fixtures in `/tmp`).
+- Machines: the user switches between a Linux laptop (`~/Desktop/vague-transcode`, bash, `&&` chains fine) and Windows (`$HOME\Desktop\vague-transcode-4k-test` or `…\vague-transcode`, PowerShell, one line at a time). Ask or infer which one before giving commands.
+
+**Notes for the AI agent's sandbox (so the next agent doesn't rediscover them)**
+- No GitHub credentials → cannot push; deliver `.patch` files (`git format-patch -1 HEAD --stdout > /home/user/<name>.patch`; for several commits `git format-patch origin/online-rtx-service --stdout`). Squash merge commits before formatting.
+- `.git/config` (remote), git identity and `node_modules` are NOT persisted between sessions: `git remote add origin https://github.com/Willsonraiii/vague-transcode.git`, fetch, `git checkout -B work origin/online-rtx-service`; commit with `git -c user.email="obito-dev@local" -c user.name="Obito Dev" commit …`. If `npx vite build` fails with `Cannot read properties of null (reading 'edgesOut')` → `rm -rf web/node_modules && npm install --no-audit --no-fund` and rebuild. Confirm `✓ built` before committing — `&&` chains have silently committed after a failed build.
+- `ffmpeg`, `ffprobe`, `xxd` are not installed in the sandbox; `developers.tiktok.com` returns 403 to the fetch tool (use search snippets); `pkill -f "[s]erver-rtx-online.js"` (the unbracketed form kills the tool's own shell).
+- Live checks: `curl -s https://obitostudio.willsonrai.com.np/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'` must match `public/assets` after a deploy; `/api/tiktok/config` shows the TikTok flags. Do not claim a push deployed until the bundle name changes.
+
+---
+
+## HISTORICAL STATUS — 2026-10-12
+
+- **Production Environment** (as written on 2026-10-12; superseded above): Linux host on port `3005` managed via systemd `obito-studio.service`. The public domain is served by Suga Cloud — see the 2026-10-16 status.
 - **Zero-RAM Remote Link Inspector**: Deployed upstream CDN stream resolver (TikWM) with HTTP Range header probing (`bytes=0-1572863`, 1.5MB) in `server-rtx-online.js`. Resolves true FPS, resolution, codec, duration, and 19200 timescale in 0.05s with negligible memory usage (~1.5 MB buffer, instantly garbage-collected) and zero cloud RAM spikes.
 - **UI & Layout Refinements**:
   - **Master Download Button**: Refined to a sleek studio action button (`42px` height, subtle sapphire-cyan glass rim) that does not clash with or overpower the terminal.

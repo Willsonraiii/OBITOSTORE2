@@ -7,11 +7,13 @@
 
 ### 1. Essential Context at a Glance
 * **Project**: Obito Studio (`vague-transcode`) — Lossless 60fps/120fps TikTok remuxing & video mastering suite.
-* **Production Host**: Linux system on port `3005` (`server-rtx-online.js`), managed by systemd `obito-studio.service`.
+* **Production Host**: **Suga Cloud** container (project `obitoo`, service `vague-transcode`) running `server-rtx-online.js` on port `3005`; it **auto-deploys on every push to `origin/online-rtx-service`** (commit built `public/` assets). A redeploy wipes the disk — members + TikTok connections are mirrored in a private Gist. The systemd/Tailscale setup in COMMANDS.md is the optional self-hosted variant.
 * **Live Domain**: `https://obitostudio.willsonrai.com.np`
 * **Frontend**: React 18 + Vite SPA located in `web/`. Outputs compiled bundle to `public/`.
 * **Git Branches**: `online-rtx-service` is the primary working branch, mirrored to `main`.
 * **Clone Repo**: Keep `/home/willson/Desktop/vague-infinity-clone` updated in sync.
+* **How changes ship**: the agent cannot push. It commits on top of the current upstream tip and hands over a `.patch` (say how many commits it holds); the user runs `git am --3way <patch>` then `git push origin online-rtx-service` — Windows PowerShell and Linux commands in `COMMANDS.md` §P.
+* **Current focus (2026-10-16)**: TikTok "Post to TikTok" is live (sandbox). Next: demo clips → Portal App review submit → Direct Post audit → "Connected accounts" dashboard section. Details: `MIGRATION.md` CURRENT STATUS, `TIKTOK-PORTAL-SETUP.md`, `TIKTOK-UPLOAD-GUIDE.md`.
 
 ---
 
@@ -30,23 +32,31 @@
    - Never touch port `3005` or production files when asked to work on experimental copies (e.g. `part-2` runs on port `3006`).
 5. **Communication Style**:
    - The user dislikes long, bloated paragraphs with repetitive categories.
-   - Always reply in few, concise, detailed, and understandable bullet points.
+   - Always reply in few, concise, detailed, and understandable bullet points; put detail into files, not chat.
    - Remember instructions across turns without making the user repeat themselves.
+6. **Product decisions already made** (do not reopen): no color-grade presets; only two TikTok products (Login Kit + Content Posting API); legal contact `resume@willsonrai.com.np`; never commit or print a real `ACCESS_TOKEN` / client secret / Gist token.
+7. **Workspace hygiene**: never leave test videos or job outputs in the repo or agent workspace; keep fixtures in `/tmp`.
 
 ---
 
 ### 3. Key Commands
 ```bash
-# Build frontend
+# Build frontend (commit the result — Suga serves public/ as committed)
 npm --prefix web run build
 
-# Restart production server (runs under user willson with systemd Restart=always)
-kill $(pgrep -f "node server-rtx-online.js")
-
-# Git sync
-git add -A
-git commit -m "<message>"
+# Apply an agent patch and ship it (Linux bash)
+cd ~/Desktop/vague-transcode && git am --3way ~/Downloads/<name>.patch && git push origin online-rtx-service
+```
+```powershell
+# Same on Windows PowerShell (no &&)
+cd "$HOME\Desktop\vague-transcode-4k-test"   # or "$HOME\Desktop\vague-transcode" — whichever exists
+git am --3way "$HOME\Downloads\<name>.patch"
 git push origin online-rtx-service
+```
+```bash
+# Self-hosted variant only: restart the local server (systemd Restart=always)
+kill $(pgrep -f "node server-rtx-online.js")
+# Optional mirror
 git push origin online-rtx-service:main
 ```
 

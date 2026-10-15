@@ -180,7 +180,7 @@ export default function TikTokPostSheet({ open, onClose, jobId, apiKey, fileName
                       <input type="radio" name="tt-privacy" value={o} checked={privacy === o} onChange={() => setPrivacy(o)} /> {PRIVACY_LABEL[o] || o}
                     </label>
                   ))}
-                  {!me.audited && <p className="tt-muted">While Obito's TikTok integration is in review, TikTok only allows private ("Only me") posts. You can change the visibility inside TikTok afterwards.</p>}
+                  {!me.audited && <p className="tt-muted">While Obito's TikTok integration is in review, TikTok only allows "Only me" posts <strong>and your TikTok account must be set to Private</strong> at the moment of posting (TikTok app → Settings and privacy → Privacy → Private account). You can switch back to public right after. "Send to my TikTok drafts" has no such restriction.</p>}
                 </fieldset>
 
                 <fieldset className="tt-field">

@@ -5251,3 +5251,11 @@ select,
 }
 .legal-links a { color: var(--text-dim); text-decoration: none; }
 .legal-links a:hover { color: var(--text-main); text-decoration: underline; text-underline-offset: 3px; }
+
+/* TikTok sheet: clear the bottom dock on phones, left-align labels, make the two choice groups read as groups */
+.tt-sheet { padding-bottom: calc(120px + env(safe-area-inset-bottom)); text-align: left; z-index: 1001; }
+.tt-sheet label { display: flex; align-items: flex-start; gap: 10px; text-align: left; line-height: 1.35; }
+.tt-sheet input[type="radio"], .tt-sheet input[type="checkbox"] { flex: 0 0 auto; margin-top: 3px; }
+.tt-sheet-backdrop { z-index: 1200; }
+.tt-field legend { text-align: left; }
+.tt-muted, .tt-error { text-align: left; }

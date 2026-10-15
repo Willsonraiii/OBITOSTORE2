@@ -500,17 +500,13 @@ export default function App() {
           ) : (
             <button
               type="button"
-              className="topbar-logo-btn topbar-right-logo-btn"
-              style={{
-                transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
-              }}
-              onClick={() => {
-                setActiveTab('dashboard');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              aria-label="OBITO STUDIO"
+              className="key-badge-btn user-profile-btn signin-btn"
+              onClick={() => setShowMemberModal(true)}
+              title="Sign in with Client ID or Access Code"
+              aria-label="Sign in"
             >
-              <Logo size={38} />
+              <PremiumKeyIcon width={13} height={13} />
+              <span className="key-btn-text">Sign in</span>
             </button>
           )}
 
@@ -534,7 +530,7 @@ export default function App() {
 
       {/* Admin Passes Management Modal */}
       {showAdminModal && (
-        <AdminPassesModal apiKey={apiKey} onClose={() => setShowAdminModal(false)} />
+        <AdminPassesModal apiKey={apiKey || lsGet('obitoKey') || ''} onClose={() => setShowAdminModal(false)} />
       )}
 
       {/* Access Key Popover Modal */}
@@ -699,10 +695,10 @@ export default function App() {
                       <p className="dropzone-sub">Enter your personal Client ID & Access code.</p>
                     </div>
                     <form className="member-inline-form" onSubmit={signInOwner}>
-                      <label htmlFor="member-id">Client ID</label>
-                      <input id="member-id" className="studio-input" placeholder="Your client ID" autoComplete="off" value={demoClientId} onFocus={() => setFocusedMemberField('id')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoClientId(e.target.value); }} required />
+                      <label htmlFor="member-id">Client ID <span style={{ opacity: 0.6, fontWeight: 'normal', fontSize: '11px' }}>(Optional for Owner)</span></label>
+                      <input id="member-id" className="studio-input" placeholder="e.g. owner or user_xxxxx" autoComplete="off" value={demoClientId} onFocus={() => setFocusedMemberField('id')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoClientId(e.target.value); }} />
                       <label htmlFor="member-code">Access code</label>
-                      <input id="member-code" className="studio-input" placeholder="Your access code" type="password" autoComplete="off" value={demoCode} onFocus={() => setFocusedMemberField('code')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoCode(e.target.value); }} required />
+                      <input id="member-code" className="studio-input" placeholder="Your access code or server token" type="password" autoComplete="off" value={demoCode} onFocus={() => setFocusedMemberField('code')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoCode(e.target.value); }} required />
                       <div className="member-inline-actions">
                         <button type="submit" className="btn-primary-hero choose-file-label">Continue</button>
                         <button type="button" className="btn-secondary" onClick={() => { setShowMemberModal(false); setDemoCode(''); }}>Back</button>

@@ -193,16 +193,22 @@ export function generateAccessCode() {
  * Returns client object if valid and active, else null.
  */
 export async function authenticateClient(clientId, accessCode) {
-  if (!clientId || !accessCode) return null;
+  if (!accessCode) return null;
   const store = await getMembersStore();
-  const normalizedId = clientId.trim().toLowerCase();
-  const client = store.clients.find(
-    (c) => c.clientId.toLowerCase() === normalizedId && c.accessCode === accessCode.trim()
-  );
-  if (!client) return null;
-  if (client.status !== 'active') return null;
-  if (client.expiresAt && Date.now() > client.expiresAt) return null;
-  return client;
+  const token = accessCode.trim();
+  const normalizedId = String(clientId || '').trim().toLowerCase();
+
+  const client = store.clients.find((c) => {
+    if (c.accessCode !== token) return false;
+    if (c.status !== 'active') return false;
+    if (c.expiresAt && Date.now() > c.expiresAt) return false;
+    if (!normalizedId) return true;
+    return (
+      c.clientId.toLowerCase() === normalizedId ||
+      (c.name && c.name.toLowerCase() === normalizedId)
+    );
+  });
+  return client || null;
 }
 
 /**

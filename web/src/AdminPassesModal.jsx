@@ -24,12 +24,22 @@ export default function AdminPassesModal({ apiKey, onClose }) {
   const [newClientCode, setNewClientCode] = useState('');
   const [creatingClient, setCreatingClient] = useState(false);
 
+  const getAuthToken = useCallback(() => {
+    return apiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('obitoKey') : '') || '';
+  }, [apiKey]);
+
   const fetchMembers = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setError('Admin access token is missing. Please sign in as owner.');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError('');
       const res = await fetch('/api/admin/members', {
-        headers: { 'x-access-token': apiKey }
+        headers: { 'x-access-token': token }
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load member passes');
@@ -40,7 +50,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [apiKey]);
+  }, [getAuthToken]);
 
   useEffect(() => {
     fetchMembers();
@@ -60,7 +70,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
       setError('');
       const res = await fetch('/api/admin/referrals', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-access-token': apiKey },
+        headers: { 'content-type': 'application/json', 'x-access-token': getAuthToken() },
         body: JSON.stringify({
           code: newRefCode.trim(),
           maxUses: newRefMaxUses === 'unlimited' ? null : parseInt(newRefMaxUses, 10) || 1,
@@ -83,7 +93,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
     try {
       const res = await fetch(`/api/admin/referrals/${encodeURIComponent(code)}/toggle`, {
         method: 'POST',
-        headers: { 'x-access-token': apiKey }
+        headers: { 'x-access-token': getAuthToken() }
       });
       if (res.ok) fetchMembers();
     } catch (err) {
@@ -96,7 +106,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
     try {
       const res = await fetch(`/api/admin/referrals/${encodeURIComponent(code)}`, {
         method: 'DELETE',
-        headers: { 'x-access-token': apiKey }
+        headers: { 'x-access-token': getAuthToken() }
       });
       if (res.ok) fetchMembers();
     } catch (err) {
@@ -111,7 +121,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
       setError('');
       const res = await fetch('/api/admin/clients', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-access-token': apiKey },
+        headers: { 'content-type': 'application/json', 'x-access-token': getAuthToken() },
         body: JSON.stringify({
           name: newClientName.trim(),
           customId: newClientId.trim(),
@@ -135,7 +145,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
     try {
       const res = await fetch(`/api/admin/clients/${encodeURIComponent(id)}/toggle`, {
         method: 'POST',
-        headers: { 'x-access-token': apiKey }
+        headers: { 'x-access-token': getAuthToken() }
       });
       if (res.ok) fetchMembers();
     } catch (err) {
@@ -148,7 +158,7 @@ export default function AdminPassesModal({ apiKey, onClose }) {
     try {
       const res = await fetch(`/api/admin/clients/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-        headers: { 'x-access-token': apiKey }
+        headers: { 'x-access-token': getAuthToken() }
       });
       if (res.ok) fetchMembers();
     } catch (err) {
@@ -247,6 +257,11 @@ export default function AdminPassesModal({ apiKey, onClose }) {
               </div>
               {loading ? (
                 <div className="admin-empty-state">Loading passes…</div>
+              ) : error ? (
+                <div className="admin-empty-state admin-error-state">
+                  <span>Failed to load referral passes: {error}</span>
+                  <button type="button" className="btn-secondary" onClick={fetchMembers} style={{ marginTop: '8px' }}>Retry</button>
+                </div>
               ) : referrals.length === 0 ? (
                 <div className="admin-empty-state">No referral codes yet. Create one above!</div>
               ) : (
@@ -478,6 +493,11 @@ export default function AdminPassesModal({ apiKey, onClose }) {
 
               {loading ? (
                 <div className="admin-empty-state">Loading clients…</div>
+              ) : error ? (
+                <div className="admin-empty-state admin-error-state">
+                  <span>Failed to load clients: {error}</span>
+                  <button type="button" className="btn-secondary" onClick={fetchMembers} style={{ marginTop: '8px' }}>Retry</button>
+                </div>
               ) : clients.length === 0 ? (
                 <div className="admin-empty-state">No registered clients yet.</div>
               ) : (

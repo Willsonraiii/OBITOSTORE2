@@ -359,31 +359,32 @@ app.use('/api', async (req, res, next) => {
   // Inspection and queue status are public; optimization, jobs and library remain protected.
   if (req.path === '/inspect' || req.path === '/inspect-link' || req.path === '/queue/status') return next();
   // Public auth & referral redemption endpoints
-  if (req.path === '/auth/redeem-referral' || req.path === '/auth/login') return next();
+  if (req.path === '/auth/redeem-referral' || req.path === '/auth/login' || req.path === '/auth/owner') return next();
 
   const id = clientId(req);
   const rec = failedKeyAttempts.get(id);
-  if (rec && Date.now() < rec.lockedUntil) {
-    res.set('Retry-After', String(Math.ceil((rec.lockedUntil - Date.now()) / 1000)));
-    return res.status(429).json({ error: 'Too many wrong keys. Try again in a few minutes.' });
-  }
-
   const given = String(req.headers['x-access-token'] || req.query.token || '').trim();
 
-  // 1. Check if owner master ACCESS_TOKEN matches
+  // 1. Check if owner master ACCESS_TOKEN matches FIRST (immune to IP lockout)
   if (ACCESS_TOKEN && given === ACCESS_TOKEN) {
     if (rec) failedKeyAttempts.delete(id);
     req.isOwner = true;
     return next();
   }
 
-  // 2. Check if given key belongs to an active client in members store
+  // 2. Check if given key belongs to an active client in members store (immune to IP lockout)
   const activeClient = await findActiveClientByCode(given);
   if (activeClient) {
     if (rec) failedKeyAttempts.delete(id);
     req.client = activeClient;
     req.isOwner = false;
     return next();
+  }
+
+  // 3. Check rate limiting lockout for invalid attempts
+  if (rec && Date.now() < rec.lockedUntil) {
+    res.set('Retry-After', String(Math.ceil((rec.lockedUntil - Date.now()) / 1000)));
+    return res.status(429).json({ error: 'Too many wrong keys. Try again in a few minutes.' });
   }
 
   // If no ACCESS_TOKEN was set AND no clients exist, allow open access (development only)
@@ -408,7 +409,8 @@ app.post('/api/auth/login', express.json({ limit: '2kb' }), async (req, res) => 
   const cId = String(rawId || '').trim();
   const cCode = String(rawCode || '').trim();
 
-  if (cId.toLowerCase() === 'owner' && ACCESS_TOKEN && cCode === ACCESS_TOKEN) {
+  // Master owner login: providing the master access token always grants owner access
+  if (ACCESS_TOKEN && cCode === ACCESS_TOKEN) {
     return res.json({ ok: true, isOwner: true, clientId: 'owner', name: 'Owner' });
   }
 
@@ -425,13 +427,13 @@ app.post('/api/auth/owner', express.json({ limit: '2kb' }), async (req, res) => 
   const givenToken = String(req.headers['x-access-token'] || req.query.token || '').trim();
   const rawId = String(req.body?.clientId || '').trim();
 
-  if (ACCESS_TOKEN && rawId.toLowerCase() === 'owner' && givenToken === ACCESS_TOKEN) {
-    return res.json({ ok: true, isOwner: true, clientId: 'owner' });
+  if (ACCESS_TOKEN && givenToken === ACCESS_TOKEN) {
+    return res.json({ ok: true, isOwner: true, clientId: 'owner', name: 'Owner' });
   }
 
   const client = await authenticateClient(rawId, givenToken);
   if (client) {
-    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name });
+    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name || client.clientId });
   }
 
   return res.status(401).json({ error: 'Invalid client ID or access code.' });
@@ -440,11 +442,11 @@ app.post('/api/auth/owner', express.json({ limit: '2kb' }), async (req, res) => 
 app.get('/api/auth/owner', async (req, res) => {
   const given = String(req.headers['x-access-token'] || req.query.token || '').trim();
   if (ACCESS_TOKEN && given === ACCESS_TOKEN) {
-    return res.json({ ok: true, isOwner: true, clientId: 'owner' });
+    return res.json({ ok: true, isOwner: true, clientId: 'owner', name: 'Owner' });
   }
   const client = await findActiveClientByCode(given);
   if (client) {
-    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name });
+    return res.json({ ok: true, isOwner: false, clientId: client.clientId, name: client.name || client.clientId });
   }
   return res.json({ ok: false });
 });

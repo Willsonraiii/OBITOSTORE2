@@ -1126,6 +1126,9 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: 'Unexpected server error.' });
 });
 
+// "/terms.html/" (trailing slash, as typed into TikTok's URL-prefix verification) -> "/terms.html"
+app.get(/^\/[A-Za-z0-9_-]+\.html\/$/, (req, res) => res.redirect(301, req.path.slice(0, -1)));
+
 app.use(express.static(PUBLIC_DIR, {
   setHeaders: (res, p) => { if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-store'); },
 }));

@@ -5242,3 +5242,12 @@ select,
 .footer-legal { margin-left: 14px; }
 .footer-legal a { color: inherit; text-decoration: none; opacity: .85; }
 .footer-legal a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+
+/* legal links under FAQ (visible on every screen size, incl. mobile where the footer is hidden) */
+.legal-links {
+  display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 28px auto 8px; padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  font-size: 13px; color: var(--text-muted);
+}
+.legal-links a { color: var(--text-dim); text-decoration: none; }
+.legal-links a:hover { color: var(--text-main); text-decoration: underline; text-underline-offset: 3px; }

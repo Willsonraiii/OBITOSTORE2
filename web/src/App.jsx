@@ -824,6 +824,14 @@ export default function App() {
                 </details>
               ))}
             </div>
+
+            <p className="legal-links">
+              <a href="/terms.html">Terms of Service</a>
+              <span aria-hidden="true">·</span>
+              <a href="/privacy.html">Privacy Policy</a>
+              <span aria-hidden="true">·</span>
+              <a href="mailto:resume@willsonrai.com.np">Contact</a>
+            </p>
         </section>
       </main>
 

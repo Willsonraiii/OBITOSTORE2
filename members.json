@@ -1,0 +1,32 @@
+{
+  "referrals": [
+    {
+      "code": "GEMINI-1",
+      "maxUses": null,
+      "usedCount": 0,
+      "status": "active",
+      "note": "Created from admin dashboard",
+      "createdAt": 1791984244155
+    },
+    {
+      "code": "OBITO-VIP",
+      "maxUses": 10,
+      "usedCount": 1,
+      "status": "active",
+      "note": "Default starter referral code",
+      "createdAt": 1791806134876
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "user_d5015b",
+      "accessCode": "OBT-1A03-08C0",
+      "name": "Referral User",
+      "source": "referral",
+      "referralCode": "OBITO-VIP",
+      "status": "active",
+      "createdAt": 1791975503859,
+      "expiresAt": null
+    }
+  ]
+}

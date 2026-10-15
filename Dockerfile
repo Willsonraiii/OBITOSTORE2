@@ -20,6 +20,7 @@ COPY lib ./lib
 COPY tools ./tools
 COPY public ./public
 COPY members-store.js ./
+COPY members.json ./
 COPY server-rtx-online.js ./
 
 # Default port 7860 for Hugging Face Spaces (dynamically overridden by $PORT on other platforms)

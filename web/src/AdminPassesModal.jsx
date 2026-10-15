@@ -91,11 +91,14 @@ export default function AdminPassesModal({ apiKey, onClose }) {
 
   const handleToggleReferral = async (code) => {
     try {
+      setError('');
       const res = await fetch(`/api/admin/referrals/${encodeURIComponent(code)}/toggle`, {
         method: 'POST',
         headers: { 'x-access-token': getAuthToken() }
       });
-      if (res.ok) fetchMembers();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to toggle referral status');
+      await fetchMembers();
     } catch (err) {
       setError(err.message);
     }
@@ -104,11 +107,14 @@ export default function AdminPassesModal({ apiKey, onClose }) {
   const handleDeleteReferral = async (code) => {
     if (!window.confirm(`Delete referral code "${code}"?`)) return;
     try {
+      setError('');
       const res = await fetch(`/api/admin/referrals/${encodeURIComponent(code)}`, {
         method: 'DELETE',
         headers: { 'x-access-token': getAuthToken() }
       });
-      if (res.ok) fetchMembers();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete referral');
+      await fetchMembers();
     } catch (err) {
       setError(err.message);
     }
@@ -143,11 +149,14 @@ export default function AdminPassesModal({ apiKey, onClose }) {
 
   const handleToggleClient = async (id) => {
     try {
+      setError('');
       const res = await fetch(`/api/admin/clients/${encodeURIComponent(id)}/toggle`, {
         method: 'POST',
         headers: { 'x-access-token': getAuthToken() }
       });
-      if (res.ok) fetchMembers();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to toggle client status');
+      await fetchMembers();
     } catch (err) {
       setError(err.message);
     }
@@ -156,11 +165,14 @@ export default function AdminPassesModal({ apiKey, onClose }) {
   const handleDeleteClient = async (id) => {
     if (!window.confirm(`Delete client "${id}"?`)) return;
     try {
+      setError('');
       const res = await fetch(`/api/admin/clients/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { 'x-access-token': getAuthToken() }
       });
-      if (res.ok) fetchMembers();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete client');
+      await fetchMembers();
     } catch (err) {
       setError(err.message);
     }

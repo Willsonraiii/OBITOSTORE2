@@ -203,46 +203,64 @@ async function atomicWriteFile(targetPath, content) {
 }
 
 /**
+ * Internal raw save: writes atomically to primary & backups, syncs to Gist and writes snapshot.
+ */
+async function _saveStore(data) {
+  try {
+    await mkdir(PERSISTENT_DIR, { recursive: true });
+    await mkdir(SNAPSHOTS_DIR, { recursive: true });
+
+    const serialized = JSON.stringify(data, null, 2);
+
+    // Write atomically to primary
+    await atomicWriteFile(MEMBERS_FILE, serialized);
+
+    // Write atomically to secondary backup
+    await atomicWriteFile(BACKUP_FILE, serialized);
+
+    // Write to workspace root file if writable
+    await atomicWriteFile(LEGACY_FILE, serialized).catch(() => {});
+
+    // Asynchronously sync to remote cloud Gist
+    syncGistStore(data).catch(() => {});
+
+    // Periodic rolling snapshot
+    const snapshotPath = path.join(SNAPSHOTS_DIR, `members_${Date.now()}.json`);
+    await writeFile(snapshotPath, serialized, 'utf8').catch(() => {});
+
+    // Keep up to 20 newest snapshots, prune older ones
+    try {
+      const snaps = (await readdir(SNAPSHOTS_DIR)).filter(f => f.startsWith('members_') && f.endsWith('.json')).sort();
+      if (snaps.length > 20) {
+        const toDelete = snaps.slice(0, snaps.length - 20);
+        for (const f of toDelete) {
+          await unlink(path.join(SNAPSHOTS_DIR, f)).catch(() => {});
+        }
+      }
+    } catch {}
+  } catch (err) {
+    console.error('[members-store] CRITICAL failed to save members store:', err);
+    throw err;
+  }
+}
+
+/**
  * Persist the members store safely to disk with atomic operations & rolling snapshots.
  */
 export async function saveMembersStore(data) {
+  return withLock(() => _saveStore(data));
+}
+
+/**
+ * Perform an atomic read-modify-write transaction on the members store.
+ * Eliminates race condition overwrites between concurrent requests.
+ */
+export async function updateMembersStore(mutator) {
   return withLock(async () => {
-    try {
-      await mkdir(PERSISTENT_DIR, { recursive: true });
-      await mkdir(SNAPSHOTS_DIR, { recursive: true });
-
-      const serialized = JSON.stringify(data, null, 2);
-
-      // Write atomically to primary
-      await atomicWriteFile(MEMBERS_FILE, serialized);
-
-      // Write atomically to secondary backup
-      await atomicWriteFile(BACKUP_FILE, serialized);
-
-      // Write to workspace root file if writable
-      await atomicWriteFile(LEGACY_FILE, serialized).catch(() => {});
-
-      // Asynchronously sync to remote cloud Gist
-      syncGistStore(data).catch(() => {});
-
-      // Periodic rolling snapshot
-      const snapshotPath = path.join(SNAPSHOTS_DIR, `members_${Date.now()}.json`);
-      await writeFile(snapshotPath, serialized, 'utf8').catch(() => {});
-
-      // Keep up to 20 newest snapshots, prune older ones
-      try {
-        const snaps = (await readdir(SNAPSHOTS_DIR)).filter(f => f.startsWith('members_') && f.endsWith('.json')).sort();
-        if (snaps.length > 20) {
-          const toDelete = snaps.slice(0, snaps.length - 20);
-          for (const f of toDelete) {
-            await unlink(path.join(SNAPSHOTS_DIR, f)).catch(() => {});
-          }
-        }
-      } catch {}
-    } catch (err) {
-      console.error('[members-store] CRITICAL failed to save members store:', err);
-      throw err;
-    }
+    const store = await getMembersStore();
+    const result = await mutator(store);
+    await _saveStore(store);
+    return result;
   });
 }
 
@@ -303,45 +321,45 @@ export async function findActiveClientByCode(accessCode) {
 export async function redeemReferralCode(referralCode, clientName = '') {
   if (!referralCode) throw new Error('Referral code is required.');
   const normalized = referralCode.trim().toUpperCase();
-  const store = await getMembersStore();
-  
-  const ref = store.referrals.find((r) => r.code.toUpperCase() === normalized);
-  if (!ref) {
-    throw new Error('Referral code is invalid or does not exist.');
-  }
-  if (ref.status !== 'active') {
-    throw new Error('This referral code has been deactivated.');
-  }
-  if (ref.maxUses !== null && ref.maxUses !== undefined && ref.usedCount >= ref.maxUses) {
-    throw new Error('This referral code has reached its maximum usage limit.');
-  }
 
-  // Create new client credentials
-  const sanitizedName = clientName.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16);
-  const clientId = generateClientId(sanitizedName || 'user');
-  const accessCode = generateAccessCode();
+  return updateMembersStore(async (store) => {
+    const ref = store.referrals.find((r) => r.code.toUpperCase() === normalized);
+    if (!ref) {
+      throw new Error('Referral code is invalid or does not exist.');
+    }
+    if (ref.status !== 'active') {
+      throw new Error('This referral code has been deactivated.');
+    }
+    if (ref.maxUses !== null && ref.maxUses !== undefined && ref.usedCount >= ref.maxUses) {
+      throw new Error('This referral code has reached its maximum usage limit.');
+    }
 
-  const newClient = {
-    clientId,
-    accessCode,
-    name: clientName.trim() || 'Referral User',
-    source: 'referral',
-    referralCode: ref.code,
-    status: 'active',
-    createdAt: Date.now(),
-    expiresAt: null
-  };
+    // Create new client credentials
+    const sanitizedName = clientName.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16);
+    const clientId = generateClientId(sanitizedName || 'user');
+    const accessCode = generateAccessCode();
 
-  ref.usedCount = (ref.usedCount || 0) + 1;
-  store.clients.unshift(newClient);
+    const newClient = {
+      clientId,
+      accessCode,
+      name: clientName.trim() || 'Referral User',
+      source: 'referral',
+      referralCode: ref.code,
+      status: 'active',
+      createdAt: Date.now(),
+      expiresAt: null
+    };
 
-  await saveMembersStore(store);
-  return {
-    clientId: newClient.clientId,
-    accessCode: newClient.accessCode,
-    name: newClient.name,
-    referralCode: ref.code
-  };
+    ref.usedCount = (ref.usedCount || 0) + 1;
+    store.clients.unshift(newClient);
+
+    return {
+      clientId: newClient.clientId,
+      accessCode: newClient.accessCode,
+      name: newClient.name,
+      referralCode: ref.code
+    };
+  });
 }
 
 /**
@@ -350,84 +368,85 @@ export async function redeemReferralCode(referralCode, clientName = '') {
 export async function createReferral({ code, maxUses = 1, note = '' }) {
   if (!code) throw new Error('Code is required');
   const normalized = code.trim().toUpperCase();
-  const store = await getMembersStore();
-  if (store.referrals.some((r) => r.code.toUpperCase() === normalized)) {
-    throw new Error('A referral code with this name already exists.');
-  }
-  const parsedMax = maxUses === 'unlimited' || maxUses === null ? null : Math.max(1, parseInt(maxUses, 10) || 1);
-  const newRef = {
-    code: normalized,
-    maxUses: parsedMax,
-    usedCount: 0,
-    status: 'active',
-    note: note.trim(),
-    createdAt: Date.now()
-  };
-  store.referrals.unshift(newRef);
-  await saveMembersStore(store);
-  return newRef;
+
+  return updateMembersStore(async (store) => {
+    if (store.referrals.some((r) => r.code.toUpperCase() === normalized)) {
+      throw new Error('A referral code with this name already exists.');
+    }
+    const parsedMax = maxUses === 'unlimited' || maxUses === null ? null : Math.max(1, parseInt(maxUses, 10) || 1);
+    const newRef = {
+      code: normalized,
+      maxUses: parsedMax,
+      usedCount: 0,
+      status: 'active',
+      note: note.trim(),
+      createdAt: Date.now()
+    };
+    store.referrals.unshift(newRef);
+    return newRef;
+  });
 }
 
 /**
  * Admin: Toggle or remove referral.
  */
 export async function toggleReferralStatus(code) {
-  const store = await getMembersStore();
-  const ref = store.referrals.find((r) => r.code.toUpperCase() === code.trim().toUpperCase());
-  if (!ref) throw new Error('Referral code not found');
-  ref.status = ref.status === 'active' ? 'disabled' : 'active';
-  await saveMembersStore(store);
-  return ref;
+  return updateMembersStore(async (store) => {
+    const ref = store.referrals.find((r) => r.code.toUpperCase() === code.trim().toUpperCase());
+    if (!ref) throw new Error('Referral code not found');
+    ref.status = ref.status === 'active' ? 'disabled' : 'active';
+    return ref;
+  });
 }
 
 export async function deleteReferral(code) {
-  const store = await getMembersStore();
-  store.referrals = store.referrals.filter((r) => r.code.toUpperCase() !== code.trim().toUpperCase());
-  await saveMembersStore(store);
-  return true;
+  return updateMembersStore(async (store) => {
+    store.referrals = store.referrals.filter((r) => r.code.toUpperCase() !== code.trim().toUpperCase());
+    return true;
+  });
 }
 
 /**
  * Admin: Manually create a client ID and pass.
  */
 export async function createClientManually({ name = '', customCode = '', customId = '' }) {
-  const store = await getMembersStore();
-  const clientId = customId ? customId.trim() : generateClientId('client');
-  const accessCode = customCode ? customCode.trim() : generateAccessCode();
-  
-  if (store.clients.some((c) => c.clientId.toLowerCase() === clientId.toLowerCase())) {
-    throw new Error('Client ID already exists.');
-  }
+  return updateMembersStore(async (store) => {
+    const clientId = customId ? customId.trim() : generateClientId('client');
+    const accessCode = customCode ? customCode.trim() : generateAccessCode();
+    
+    if (store.clients.some((c) => c.clientId.toLowerCase() === clientId.toLowerCase())) {
+      throw new Error('Client ID already exists.');
+    }
 
-  const client = {
-    clientId,
-    accessCode,
-    name: name.trim() || 'Manual Client',
-    source: 'manual',
-    status: 'active',
-    createdAt: Date.now(),
-    expiresAt: null
-  };
-  store.clients.unshift(client);
-  await saveMembersStore(store);
-  return client;
+    const client = {
+      clientId,
+      accessCode,
+      name: name.trim() || 'Manual Client',
+      source: 'manual',
+      status: 'active',
+      createdAt: Date.now(),
+      expiresAt: null
+    };
+    store.clients.unshift(client);
+    return client;
+  });
 }
 
 /**
  * Admin: Revoke or toggle a client.
  */
 export async function toggleClientStatus(clientId) {
-  const store = await getMembersStore();
-  const client = store.clients.find((c) => c.clientId.toLowerCase() === clientId.trim().toLowerCase());
-  if (!client) throw new Error('Client not found');
-  client.status = client.status === 'active' ? 'revoked' : 'active';
-  await saveMembersStore(store);
-  return client;
+  return updateMembersStore(async (store) => {
+    const client = store.clients.find((c) => c.clientId.toLowerCase() === clientId.trim().toLowerCase());
+    if (!client) throw new Error('Client not found');
+    client.status = client.status === 'active' ? 'revoked' : 'active';
+    return client;
+  });
 }
 
 export async function deleteClient(clientId) {
-  const store = await getMembersStore();
-  store.clients = store.clients.filter((c) => c.clientId.toLowerCase() !== clientId.trim().toLowerCase());
-  await saveMembersStore(store);
-  return true;
+  return updateMembersStore(async (store) => {
+    store.clients = store.clients.filter((c) => c.clientId.toLowerCase() !== clientId.trim().toLowerCase());
+    return true;
+  });
 }

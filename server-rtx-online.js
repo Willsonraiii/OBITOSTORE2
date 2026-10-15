@@ -150,7 +150,6 @@ function publicJob(job) {
     status: job.status,
     queuePosition,
     mode: job.mode ?? 'hdr',
-    preset: job.preset ?? 'original',
     result: job.result ?? null,
     progress: job.progress ?? 0,
     stage: job.stage ?? null,
@@ -281,6 +280,7 @@ function startNextJob() {
         try { job.result = JSON.parse(line.slice('PIPELINE_RESULT '.length)); } catch {}
       }
       logLine(job, '[obito] repackaged — copy test & probe…');
+      job.probeOut = summarizeProbe(probeFile(job.outputPath));
       const hdrTag = job.probeIn?.dv && !job.probeOut?.dv ? ' · DV normalized to HLG HDR' : job.probeOut?.transfer === 'arib-std-b67' ? ' · HLG HDR' : job.probeOut?.transfer === 'smpte2084' ? ' · HDR10 / PQ' : '';
       logLine(job, `[obito] done ✓ output ${job.probeOut ? job.probeOut.w + 'x' + job.probeOut.h + ' · ' + job.probeOut.fps + ' fps' : ''}${hdrTag}`);
       libAdd({ id: job.id, name: job.fileName || 'video', mode: job.mode, status: 'done', at: Date.now(), in: job.probeIn || null, out: job.probeOut || null, result: job.result || null }).catch(() => {});
@@ -1011,47 +1011,6 @@ app.post('/api/uploads/:id/start', express.json({ limit: '10kb' }), async (req, 
   } catch (error) {
     console.error('start from upload failed:', error);
     res.status(500).json({ error: 'Could not start optimizing.' });
-  }
-});
-
-app.post('/api/jobs/:id/grade', express.json({ limit: '10kb' }), async (req, res) => {
-  try {
-    const parentId = req.params.id;
-    if (!validJobId(parentId)) return res.status(400).json({ error: 'Bad job id.' });
-    const parent = jobs.get(parentId);
-    if (!parent || parent.status !== 'done' || !existsSync(parent.outputPath)) {
-      return res.status(404).json({ error: 'Original optimized video is no longer available.' });
-    }
-    const preset = String(req.body?.preset || 'vibrant');
-    const id = newJobId();
-    const dir = path.join(JOBS_DIR, id);
-    await mkdir(dir, { recursive: true });
-    const inputPath = path.join(dir, 'input.mp4');
-    const masterUpload = parent.uploadId ? uploadPaths(parent.uploadId).data : null;
-    const sourcePath = (masterUpload && existsSync(masterUpload)) ? masterUpload : parent.outputPath;
-    await link(sourcePath, inputPath).catch(() => copyFile(sourcePath, inputPath));
-
-    const st = await stat(inputPath);
-    const job = {
-      id, dir, inputPath,
-      uploadId: parent.uploadId || null,
-      outputPath: path.join(dir, 'output.mp4'),
-      status: 'queued',
-      mode: parent.mode || 'hdr',
-      preset,
-      createdAt: Date.now(),
-      inputBytes: st.size,
-      outputBytes: null,
-      error: null,
-      fileName: (parent.fileName ? parent.fileName.replace(/\.[^.]+$/, '') : 'video') + `-${preset}.mp4`,
-    };
-    jobs.set(id, job);
-    console.log(`[job ${id}] queued grade (${preset}) from parent job ${parentId}`);
-    startNextJob();
-    res.status(201).json({ id });
-  } catch (error) {
-    console.error('grade job failed:', error);
-    res.status(500).json({ error: 'Could not apply color grade.' });
   }
 });
 

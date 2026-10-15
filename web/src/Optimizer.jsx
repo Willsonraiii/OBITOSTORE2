@@ -892,8 +892,6 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     upId.current = null;
     jobId.current = null;
     fileRef.current = null;
-    setColorPreset('original');
-    setGradeState({ loading: false, resultId: null, preset: null, error: '' });
   };
 
   const continueKept = () => {

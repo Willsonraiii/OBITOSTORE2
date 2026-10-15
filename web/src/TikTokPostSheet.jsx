@@ -93,7 +93,12 @@ export default function TikTokPostSheet({ open, onClose, jobId, apiKey, fileName
     pollRef.current = setInterval(async () => {
       try {
         const r = await fetch(`/api/jobs/${jobId}/tiktok`, { headers: headers() });
-        const j = await r.json();
+        const j = r.ok ? await r.json() : null;
+        if (!j || !j.state) {
+          // 404 = the server restarted (deploy) or the 1 h job expired: we lost track, TikTok did not.
+          if (r.status === 404 || r.status === 410) { setPost({ state: 'lost', mode }); clearInterval(pollRef.current); }
+          return; // other errors: keep polling
+        }
         setPost(j);
         if (j.state === 'complete' || j.state === 'failed') clearInterval(pollRef.current);
       } catch { /* keep polling */ }
@@ -251,7 +256,15 @@ export default function TikTokPostSheet({ open, onClose, jobId, apiKey, fileName
               <p>Sent to your TikTok inbox ✓ — open the TikTok app to finish and publish it.</p>
             )}
             {post.state === 'failed' && <p className="tt-error">TikTok post failed: {post.error || post.failReason || 'unknown error'}</p>}
-            {(post.state === 'complete' || post.state === 'failed') && (
+            {post.state === 'lost' && (
+              <p className="tt-muted">
+                Lost track of this upload — the server restarted or the job expired. If the upload had finished, TikTok is still
+                processing it on its side: {post.mode === 'inbox'
+                  ? 'watch Inbox → System notifications in the TikTok app (it can take several minutes).'
+                  : 'check your profile in the TikTok app in a few minutes.'}
+              </p>
+            )}
+            {(post.state === 'complete' || post.state === 'failed' || post.state === 'lost') && (
               <button type="button" className="btn-secondary" onClick={onClose}>Close</button>
             )}
           </div>

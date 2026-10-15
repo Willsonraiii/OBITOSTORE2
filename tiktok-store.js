@@ -12,6 +12,11 @@
  * - All read-modify-write cycles run INSIDE the lock (unlike members-store, see review §2).
  * - Access tokens expire after 24 h; getValidAccessToken() refreshes them 5 min early and
  *   persists the (possibly rotated) refresh token.
+ * - Cloud copy: the container disk is wiped on every redeploy, so (like members-store) the file is
+ *   mirrored into the private GitHub Gist (MEMBERS_GIST_ID / MEMBERS_GIST_TOKEN, overridable with
+ *   TIKTOK_GIST_ID / TIKTOK_GIST_TOKEN) as "tiktok-accounts.json" and restored on boot when the
+ *   local file is missing. Only ENCRYPTED records are mirrored — without TIKTOK_TOKEN_KEY the
+ *   mirror stays off.
  */
 import { readFile, writeFile, mkdir, rename, chmod } from 'node:fs/promises';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
@@ -22,6 +27,39 @@ const PERSISTENT_DIR = process.env.DATA_DIR || path.join(process.env.HOME || '/t
 const FILE = path.join(PERSISTENT_DIR, 'tiktok-accounts.json');
 const KEY = /^[0-9a-f]{64}$/i.test(process.env.TIKTOK_TOKEN_KEY || '') ? Buffer.from(process.env.TIKTOK_TOKEN_KEY, 'hex') : null;
 if (!KEY) console.warn('[tiktok-store] TIKTOK_TOKEN_KEY not set — TikTok tokens will be stored unencrypted');
+
+// ---- Gist mirror (survives redeploys) ----------------------------------------
+const GIST_ID = process.env.TIKTOK_GIST_ID || process.env.MEMBERS_GIST_ID || '';
+const GIST_TOKEN = process.env.TIKTOK_GIST_TOKEN || process.env.MEMBERS_GIST_TOKEN || '';
+const GIST_FILE = 'tiktok-accounts.json';
+const GIST_SYNC = Boolean(GIST_ID && GIST_TOKEN && KEY);
+if (GIST_ID && GIST_TOKEN && !KEY) console.warn('[tiktok-store] Gist mirror OFF: set TIKTOK_TOKEN_KEY so only encrypted tokens leave this machine');
+if (!GIST_ID || !GIST_TOKEN) console.warn('[tiktok-store] no Gist configured — TikTok connections will be lost on every redeploy (set MEMBERS_GIST_ID/MEMBERS_GIST_TOKEN or mount a volume at DATA_DIR)');
+const gistHeaders = { 'User-Agent': 'ObitoStudio', Authorization: `token ${GIST_TOKEN}`, Accept: 'application/vnd.github+json' };
+
+async function gistFetch() {
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, { headers: gistHeaders, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) { console.warn(`[tiktok-store] Gist fetch HTTP ${res.status}`); return null; }
+    const file = (await res.json())?.files?.[GIST_FILE];
+    if (!file) return null;
+    let content = file.content;
+    if (file.truncated && file.raw_url) content = await (await fetch(file.raw_url, { headers: gistHeaders, signal: AbortSignal.timeout(6000) })).text();
+    const data = JSON.parse(content || '{}');
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+  } catch (e) { console.warn('[tiktok-store] Gist fetch error (non-fatal):', e.message); return null; }
+}
+
+async function gistPush(data) {
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH', headers: { ...gistHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data, null, 2) } } }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) console.warn(`[tiktok-store] Gist sync HTTP ${res.status}`);
+  } catch (e) { console.warn('[tiktok-store] Gist sync error (non-fatal):', e.message); }
+}
 
 // ---- crypto -----------------------------------------------------------------
 function seal(plain) {
@@ -53,16 +91,32 @@ function withLock(fn) {
 let cache = null;
 async function load() {
   if (cache) return cache;
-  try { cache = JSON.parse(await readFile(FILE, 'utf8')); } catch { cache = {}; }
+  let local = null;
+  try { local = JSON.parse(await readFile(FILE, 'utf8')); } catch { /* first boot or wiped disk */ }
+  if (local && Object.keys(local).length) { cache = local; return cache; }
+  if (GIST_SYNC) {
+    const remote = await gistFetch();
+    if (remote && Object.keys(remote).length) {
+      console.log(`[tiktok-store] restored ${Object.keys(remote).length} TikTok connection(s) from Gist`);
+      cache = remote;
+      await writeLocal(remote).catch((e) => console.warn('[tiktok-store] local write failed:', e.message));
+      return cache;
+    }
+  }
+  cache = local || {};
   return cache;
 }
-async function persist(data) {
+async function writeLocal(data) {
   await mkdir(PERSISTENT_DIR, { recursive: true });
   const tmp = `${FILE}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tmp, JSON.stringify(data, null, 2), { mode: 0o600 });
   await rename(tmp, FILE);
   await chmod(FILE, 0o600).catch(() => {});
+}
+async function persist(data) {
+  await writeLocal(data);
   cache = data;
+  if (GIST_SYNC) await gistPush(data); // awaited so a redeploy right after connect can't lose it
 }
 
 // ---- public API ---------------------------------------------------------------

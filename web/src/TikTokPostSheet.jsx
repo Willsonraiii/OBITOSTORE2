@@ -231,7 +231,19 @@ export default function TikTokPostSheet({ open, onClose, jobId, apiKey, fileName
         {post && (
           <div className="tt-progress" aria-live="polite">
             {post.state === 'uploading' && <p>Uploading to TikTok… {post.total > 1 ? Math.round((post.uploaded / post.total) * 100) : 0}%</p>}
-            {post.state === 'processing' && <p>Upload complete — TikTok is processing your video…</p>}
+            {post.state === 'processing' && (
+              <>
+                <p>Upload complete — TikTok is processing your video… ({Math.floor((post.elapsedMs || 0) / 60000)}:{String(Math.floor(((post.elapsedMs || 0) % 60000) / 1000)).padStart(2, '0')})</p>
+                <p className="tt-status-raw">TikTok status: {post.status || 'waiting for first status'}{post.uploadedBytes != null ? ` · ${(post.uploadedBytes / 1e6).toFixed(1)} / ${(post.total / 1e6).toFixed(1)} MB received` : ''} · id {post.publishId}</p>
+                {post.mode === 'inbox' && (
+                  <p className="tt-hint">
+                    Drafts sent by apps do <b>not</b> appear in Profile → Drafts. TikTok sends a notification to <b>Inbox → System notifications</b>
+                    (“Your video from Obito Studio is ready…”) once processing finishes — usually 1–5 minutes, sometimes longer for HDR videos.
+                    Keep this page open, or come back later: the notification arrives either way.
+                  </p>
+                )}
+              </>
+            )}
             {post.state === 'complete' && post.mode === 'direct' && (
               <p>Posted ✓ — it can take a few minutes to appear on your profile. Check the TikTok app.</p>
             )}

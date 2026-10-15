@@ -268,8 +268,10 @@ export function mountTikTokRoutes(app, { jobs, validJobId }) {
       try {
         const token = await getValidAccessToken(t.sub, { clientKey: CLIENT_KEY, clientSecret: CLIENT_SECRET });
         const s = await fetchPublishStatus(token, t.publishId);
+        if (s.status !== t.status || s.fail_reason !== t.failReason) console.log(`[tiktok] job ${job.id} ${t.mode} ${t.publishId} status ${s.status || '?'}${s.fail_reason ? ' fail_reason=' + s.fail_reason : ''} uploaded_bytes=${s.uploaded_bytes ?? '?'}`);
         t.status = s.status || null;
         t.failReason = s.fail_reason || null;
+        t.uploadedBytes = Number.isFinite(Number(s.uploaded_bytes)) ? Number(s.uploaded_bytes) : null;
         t.postIds = Array.isArray(s.publicaly_available_post_id) ? s.publicaly_available_post_id : [];
         if (s.status === 'PUBLISH_COMPLETE' || s.status === 'SEND_TO_USER_INBOX') t.state = 'complete';
         else if (s.status === 'FAILED') { t.state = 'failed'; t.error = describeError({ code: s.fail_reason, message: s.fail_reason }); }
@@ -277,6 +279,6 @@ export function mountTikTokRoutes(app, { jobs, validJobId }) {
         if (!(e instanceof TikTokApiError && e.retryable)) { t.state = 'failed'; t.error = describeError(e); }
       }
     }
-    res.json({ mode: t.mode, publishId: t.publishId, state: t.state, uploaded: t.uploaded, total: t.total, status: t.status, failReason: t.failReason, postIds: t.postIds, error: t.error });
+    res.json({ mode: t.mode, publishId: t.publishId, state: t.state, uploaded: t.uploaded, total: t.total, status: t.status, failReason: t.failReason, postIds: t.postIds, error: t.error, uploadedBytes: t.uploadedBytes ?? null, startedAt: t.startedAt, elapsedMs: Date.now() - t.startedAt });
   }));
 }

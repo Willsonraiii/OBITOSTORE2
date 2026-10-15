@@ -5259,3 +5259,7 @@ select,
 .tt-sheet-backdrop { z-index: 1200; }
 .tt-field legend { text-align: left; }
 .tt-muted, .tt-error { text-align: left; }
+
+/* TikTok sheet: processing diagnostics */
+.tt-progress .tt-status-raw { font-size: 12px; opacity: .7; word-break: break-all; margin-top: 4px; }
+.tt-progress .tt-hint { font-size: 13px; opacity: .85; margin-top: 8px; line-height: 1.45; }

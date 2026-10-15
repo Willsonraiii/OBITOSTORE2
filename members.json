@@ -6,15 +6,15 @@
       "usedCount": 0,
       "status": "active",
       "note": "Created from admin dashboard",
-      "createdAt": 1791984244155
+      "createdAt": 1792047042991
     },
     {
       "code": "OBITO-VIP",
       "maxUses": 10,
-      "usedCount": 1,
+      "usedCount": 0,
       "status": "active",
       "note": "Default starter referral code",
-      "createdAt": 1791806134876
+      "createdAt": 1792037475187
     }
   ],
   "clients": [
@@ -22,10 +22,9 @@
       "clientId": "user_d5015b",
       "accessCode": "OBT-1A03-08C0",
       "name": "Referral User",
-      "source": "referral",
-      "referralCode": "OBITO-VIP",
+      "source": "manual",
       "status": "active",
-      "createdAt": 1791975503859,
+      "createdAt": 1792047049499,
       "expiresAt": null
     }
   ]

@@ -37,6 +37,7 @@ const CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || '';
 const REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || '';
 const SCOPES = (process.env.TIKTOK_SCOPES || 'user.info.basic,video.upload,video.publish').split(',').map((s) => s.trim()).filter(Boolean);
 const AUDITED = /^(1|true|yes)$/i.test(process.env.TIKTOK_AUDITED || '');
+const FORCE_CONSENT = /^(1|true|yes)$/i.test(process.env.TIKTOK_FORCE_CONSENT || ''); // adds disable_auto_auth=1 (see buildAuthorizeUrl)
 const STATE_SECRET = process.env.TIKTOK_STATE_SECRET || randomBytes(32).toString('hex');
 const ENABLED = Boolean(CLIENT_KEY && CLIENT_SECRET && REDIRECT_URI);
 const DIRECT = SCOPES.includes('video.publish');
@@ -106,7 +107,7 @@ export function mountTikTokRoutes(app, { jobs, validJobId }) {
   // Step 1 — frontend fetch()es this with its Obito token, then opens the returned URL.
   app.get('/api/tiktok/connect', (req, res) => {
     if (!ENABLED) return res.status(503).json({ error: 'TikTok posting is not configured on this server.' });
-    const url = buildAuthorizeUrl({ clientKey: CLIENT_KEY, redirectUri: REDIRECT_URI, scopes: SCOPES, state: signState(subjectOf(req)) });
+    const url = buildAuthorizeUrl({ clientKey: CLIENT_KEY, redirectUri: REDIRECT_URI, scopes: SCOPES, state: signState(subjectOf(req)), forceConsent: FORCE_CONSENT });
     res.json({ url });
   });
 
@@ -153,12 +154,20 @@ export function mountTikTokRoutes(app, { jobs, validJobId }) {
     });
   }));
 
+  // Disconnect = forget our copy AND revoke the grant at TikTok (awaited, ~1 s). Revoking is what makes
+  // TikTok show its consent page again on the next "Continue with TikTok" instead of silently re-using
+  // the old grant. A stale (expired) access token can't be revoked, so refresh it first when possible.
   app.post('/api/tiktok/disconnect', wrap(async (req, res) => {
     const sub = subjectOf(req);
     const acc = await getAccount(sub);
-    if (acc) revokeToken({ clientKey: CLIENT_KEY, clientSecret: CLIENT_SECRET, token: acc.access_token }).catch(() => {});
+    let revoked = false;
+    if (acc) {
+      let token = acc.access_token;
+      try { token = await getValidAccessToken(sub, { clientKey: CLIENT_KEY, clientSecret: CLIENT_SECRET }); } catch { /* use stored token */ }
+      try { revoked = await revokeToken({ clientKey: CLIENT_KEY, clientSecret: CLIENT_SECRET, token }); } catch (e) { console.warn('[tiktok] revoke failed:', e.message || e); }
+    }
     await deleteAccount(sub);
-    res.json({ ok: true });
+    res.json({ ok: true, revoked });
   }));
 
   // Start a post. Validates everything TikTok's UX guidelines require, then uploads in the background.

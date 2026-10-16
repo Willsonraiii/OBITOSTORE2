@@ -279,6 +279,6 @@ a 75 MB master → 7 chunks with the remainder merged into the last one, memory 
 - [ ] Parked (2026-10-16): inbox/draft post never reached `SEND_TO_USER_INBOX` (2 tests, incl. ~10 min wait). `video.upload` dropped from `TIKTOK_SCOPES`; code kept, not advertised.
 - [x] Direct post (Only me) completes → `PUBLISH_COMPLETE` (2026-10-16)
 - [ ] Inspector confirms the published video kept 60 fps / HDR (user: a private→public switch seemed to lose HDR; parked)
-- [ ] Demo clip recorded (one, Direct Post only) and app review submitted
+- [x] Demo clip recorded (one, Direct Post only), **app review submitted 2026-10-16 — In review** (first attempt recalled: the reason modal is 120 *characters*, and the text still mentioned drafts)
 - [ ] After approval: production credentials, `TIKTOK_AUDITED=true`, redeploy
 - [ ] Then: "Connected accounts" dashboard section (linked TikTok name/avatar + Disconnect)

@@ -465,3 +465,5 @@ After approval: swap key/secret for the Production pair; after the Direct Post a
 
 ## T4. Demo + review (see TIKTOK-PORTAL-SETUP.md Step 7)
 One clip (Direct Post only — drafts parked, don't show it): consent → Only me → Posted → Profile. ≤50 MB. Portal → Production → App review → replace placeholder → Submit for review. Then Products → Content Posting API → Direct Post → Apply for audit.
+
+**Portal gotchas (learned 2026-10-16):** the submission "reason" modal = **120 characters** (not words) — a long paste gets truncated; the long explanation goes in the required-info box (1000 chars). A wrong text submission is fixable with **Recall** (withdraw → edit → submit again). Submitted 2026-10-16, status **In review** (video `1792126232668690.mp4`); don't edit products/scopes/URLs while pending.

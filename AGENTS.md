@@ -1,0 +1,44 @@
+# AGENTS.md — Obito Studio (`vague-transcode`)
+
+Always-on summary for any coding agent (Antigravity, Cursor, Claude Code, Codex…).
+Depth lives in `agent-docs/` — read in this order before doing project work:
+
+1. `agent-docs/MIGRATION.md` — the project book; its **CURRENT STATUS** section is the single source of truth.
+2. `agent-docs/AGENTS.md` — full architecture + user non-negotiables.
+3. `agent-docs/COMMANDS.md` — build, test, deploy, patch workflow, TikTok ops.
+
+---
+
+## What this is
+
+Lossless 60/120 fps + HDR video mastering for TikTok. Express server (`server-rtx-online.js`) + React/Vite SPA (`web/` → builds into `public/`). Production is a **Suga Cloud** container that **auto-deploys on every push to `online-rtx-service`**; live at `https://obitostudio.willsonrai.com.np`. Members and TikTok connections persist through a private GitHub Gist because a redeploy wipes the container disk.
+
+Current focus (2026-10-16): TikTok "Post to TikTok" is live with sandbox credentials, **Direct Post only** (drafts parked). App review is **In review**; "Connected accounts" shipped on the Dashboard.
+
+## Hard rules — never break
+
+1. **Lossless only.** Container surgery (`-c copy`), 19200 timescale harmonization, color transfer atoms preserved. Never re-encode pixels unless the user explicitly asks for the H.264 fallback.
+2. **Zero cloud RAM spikes.** Remote inspection = HTTP Range probe (`bytes=0-1572863`). Never download whole videos into memory.
+3. **Secrets.** Never print, commit or paste a real `ACCESS_TOKEN`, TikTok client secret, `TIKTOK_TOKEN_KEY`, or Gist token. Environment-variable *names* only, in docs and chat.
+4. **No AI/"vibe-coded" visuals.** No sparkle emojis, no purple/blue gradient text, no badge pills. Apple / DaVinci studio look: solid white headings, frosted glass, slate/cyan accents.
+5. **Port 3005 is production.** Never bind, test, or experiment against it. Experiments use 3006.
+6. **Decisions already made — do not reopen:** no color-grade presets; TikTok products = Login Kit + Content Posting API only; legal contact `resume@willsonrai.com.np`.
+7. **Do not touch the TikTok developer portal** (app `7696831141604771848`): products, scopes, URLs, demo video, review text. The app is **In review** — any edit re-triggers the queue.
+
+## Build & ship
+
+- Frontend: `npm --prefix web run build` — must print `✓ built`; the rebuilt `public/` assets are committed with the change (Suga serves committed files).
+- Pushing to `origin/online-rtx-service` triggers the redeploy (~2–3 min). A redeploy restarts the server: in-flight jobs are lost (by design); members + TikTok connections restore from the Gist. **Don't push while a TikTok post is processing.**
+- Verify a deploy: `curl -s https://obitostudio.willsonrai.com.np/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'` must equal the file name in `public/assets`. `/api/tiktok/config` shows the TikTok flags (`inboxUpload` must be `false` while drafts are parked).
+- No push access? Produce a patch and say how many commits it holds: `git format-patch origin/online-rtx-service --stdout > <name>.patch`.
+
+## Permissions (agents here may run commands without being asked — treat these as law)
+
+- **Allowed without asking:** reading anything; frontend build; `git status/diff/log`; editing `web/src/`, `lib/`, `tools/`, `agent-docs/`.
+- **Ask first:** any `git push`; installing/updating npm packages; anything that changes TikTok/auth behavior in `server-rtx-online.js`; deleting anything outside `/tmp`; touching the TikTok portal.
+- **Never:** commit secrets; `git reset --hard` / `git clean -xfd` over uncommitted work; run experiments against port 3005; leave test videos or job outputs in the repo (fixtures in `/tmp`).
+
+## Style & self-verification
+
+- Reply in short, detailed bullets. Put detail into files, not chat.
+- **Before finishing any turn:** run the build and confirm `✓ built`; verify every literal requirement the user stated (character limits, exact quoted sentences) *inside the delivered file*; verify claims about the live site with a `curl` instead of asserting them.

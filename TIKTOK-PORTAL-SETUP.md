@@ -56,10 +56,9 @@ In **Products → + Add products**:
 ### 3b. Content Posting API
 - Add it. Inside the product you'll see two configurations:
   - **Direct Post** — turn **ON** (this is the "post from the site" button).
-  - **Upload** (inbox/draft) — leave **ON**.
-- Scopes appear in the **Scopes** list on the app page. Make sure these are present and request them:
-  - `video.upload`
-  - `video.publish`
+  - **Upload** (inbox/draft) — **cannot be turned off.** TikTok bundles it into the product ("By default, Upload to TikTok is enabled, allowing you to upload content to TikTok as a draft…"). Ignore it.
+- Scopes appear in the **Scopes** list on the app page. `user.info.basic`, `video.publish` and `video.upload` are all **granted by the products** ("Included in Login Kit" / "Included in Content Posting API") — the list only offers **+ Add scopes**, there is **no per-scope remove**. Do **not** delete the Content Posting API product to get rid of `video.upload`; that takes Direct Post with it.
+- Obito drops drafts on its own side: since 2026-10-16 the server requests `TIKTOK_SCOPES=user.info.basic,video.publish`, so `video.upload` is never asked for in the consent screen the reviewer watches. Details: `agent-docs/MIGRATION.md` CURRENT STATUS.
 - Each scope asks "How will your app use this?". Suggested text:
   - **video.upload:** "Sends the video the creator just optimized in Obito Studio to the creator's own TikTok inbox as a draft, so they can finish and publish it in the TikTok app."
   - **video.publish:** "Lets the creator publish the video they just optimized to their own TikTok profile from Obito Studio. The creator sees the account name, picks the privacy level (no default), chooses comment/duet/stitch settings, discloses commercial content, and accepts the Music Usage Confirmation before posting."
@@ -95,7 +94,8 @@ On the server:
 TIKTOK_CLIENT_KEY=<sandbox client key>
 TIKTOK_CLIENT_SECRET=<sandbox client secret>
 TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback
-TIKTOK_SCOPES=user.info.basic,video.upload,video.publish
+TIKTOK_SCOPES=user.info.basic,video.publish
+# drafts parked 2026-10-16 — video.upload cannot be removed in the portal (see Step 3b); re-add it here to revive drafts
 TIKTOK_AUDITED=false
 ```
 
@@ -105,7 +105,7 @@ Test (with a target‑user TikTok account):
 1. Optimize a short 60 fps clip → **Post to TikTok** → **Continue with TikTok** → log in → **Authorize**.
 2. Sheet shows "Posting as @you". Pick **Only me** → tick consent → **Post to TikTok**.
 3. Wait for "Posted ✓" → open the TikTok app → Profile → the private video should be there.
-4. Also test **Send to TikTok drafts** → check the Inbox notification in the app.
+4. Drafts is parked (2026-10-16): `video.upload` may still sit in the portal's scope list, but the server doesn't request it and the sheet hides it — don't test or demo it.
 5. Paste the post link into Obito's **Inspector** tab → confirm fps/HDR survived.
 
 Common errors at this stage:
@@ -125,11 +125,10 @@ Only when the sandbox test works.
 1. Toggle to **Production**. If you changed anything in the sandbox, **Draft → Import → from sandbox**.
 2. **App review** section:
    - For **each product and scope**, explain how it's used (reuse Step 3 texts).
-   - **Demo video(s)** (max 5, ≤ 50 MB each). Plan agreed 2026-10-16 — two uncut iPhone screen recordings (mic off):
+   - **Demo video(s)** (max 5, ≤ 50 MB each). Plan as of 2026-10-16 — **one** uncut iPhone screen recording (mic off), Direct Post only; drafts is parked (see `agent-docs/MIGRATION.md` CURRENT STATUS).
      - **Prep:** TikTok app → Settings and privacy → Privacy → Private account ON. Safari → Settings → Advanced → Website Data → delete `tiktok` entries (avoids the app-handoff loop). In the sheet press **Not you? Disconnect** so the consent page appears on camera.
      - **Clip 1 (Login Kit + video.publish):** open site → log in → drop a short clip → optimize → **Post to TikTok** → **Continue with TikTok** → TikTok login (phone/email) → consent screen → Authorize → sheet shows the account name → caption → privacy **Only me** (show nothing was pre‑selected) → toggles → consent checkbox → Post → "Posted ✓" → TikTok app → Profile → the video.
-     - **Clip 2 (video.upload):** **Post to TikTok** → **Send to my TikTok drafts** → wait for "Sent to your TikTok inbox ✓" (the sheet shows TikTok's status while it processes) → TikTok app → **Inbox → System notifications** → tap the notification → the draft opens in the editor.
-     - Keep each under 50 MB (Photos → ⓘ shows the size; trim idle waiting in Photos → Edit if needed). Reviewers need to see the consent screen and both results; they don't care about length.
+     - Keep it under 50 MB (Photos → ⓘ shows the size; trim idle waiting in Photos → Edit if needed). Reviewers need to see the consent screen and the posted result; they don't care about length. If a reviewer later asks about drafts (`video.upload` sits in the Scopes list), resubmit with a drafts clip or state that drafts is not offered yet.
 3. Delete the placeholder video, upload the clips, **Save → Submit for review**. Set the TikTok account back to public afterwards.
 4. Watch the **App review status** (and your email). If rejected, the reason is shown; fix and resubmit.
 
@@ -156,11 +155,11 @@ Separate from app review. Until this passes, Direct Post stays private‑only.
 - [ ] Organization + app created (Production)
 - [ ] Basic info, Terms/Privacy URLs, Web platform saved
 - [ ] Login Kit with redirect URI
-- [ ] Content Posting API, Direct Post ON, scopes `video.upload` + `video.publish` requested
+- [ ] Content Posting API, Direct Post ON (`video.upload` stays listed — bundled with the product, cannot be removed)
 - [ ] Domain / URL prefix verified
 - [ ] Sandbox cloned, target user added, sandbox key/secret copied
-- [ ] `.env` filled, `/api/tiktok/config` → `enabled:true`
+- [ ] `.env` filled (`TIKTOK_SCOPES=user.info.basic,video.publish`), `/api/tiktok/config` → `enabled:true`, `inboxUpload:false`
 - [ ] Sandbox post works (private) + Inspector confirms fps/HDR
-- [ ] App review submitted with demo video
+- [ ] App review submitted with the demo (one clip, Direct Post only)
 - [ ] Direct Post audit applied
 - [ ] Approved → production credentials, `TIKTOK_AUDITED=true`

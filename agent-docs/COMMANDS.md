@@ -448,14 +448,14 @@ PowerShell: `(Invoke-WebRequest https://obitostudio.willsonrai.com.np/).Content 
 # T — TIKTOK ("Post to TikTok")
 
 ## T1. Server env (Suga → service → Environment). Names only — never paste values into docs or chat.
-`TIKTOK_CLIENT_KEY` `TIKTOK_CLIENT_SECRET` (sandbox pair until approval) · `TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback` · `TIKTOK_SCOPES=user.info.basic,video.upload,video.publish` · `TIKTOK_AUDITED=false` · `TIKTOK_STATE_SECRET` · `TIKTOK_TOKEN_KEY` (64 hex; losing it = everyone reconnects) · optional `TIKTOK_FORCE_CONSENT` (keep unset) · `TIKTOK_GIST_ID`/`TIKTOK_GIST_TOKEN` (default to `MEMBERS_GIST_*`).
+`TIKTOK_CLIENT_KEY` `TIKTOK_CLIENT_SECRET` (sandbox pair until approval) · `TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback` · `TIKTOK_SCOPES=user.info.basic,video.publish` (drafts parked 2026-10-16; re-add `video.upload` here to revive — the portal cannot remove that scope) · `TIKTOK_AUDITED=false` · `TIKTOK_STATE_SECRET` · `TIKTOK_TOKEN_KEY` (64 hex; losing it = everyone reconnects) · optional `TIKTOK_FORCE_CONSENT` (keep unset) · `TIKTOK_GIST_ID`/`TIKTOK_GIST_TOKEN` (default to `MEMBERS_GIST_*`).
 After approval: swap key/secret for the Production pair; after the Direct Post audit: `TIKTOK_AUDITED=true`.
 
 ## T2. Manual test (what "works" looks like)
 1. TikTok app → Profile → ☰ → Settings and privacy → Privacy → **Private account ON** (needed for unaudited direct posts).
 2. Site → Optimizer → optimize a short clip → **Post to TikTok** → **Continue with TikTok** → consent → Authorize.
 3. Publish now → caption → **Only me** → consent box → Post → "Posted ✓" → video on your TikTok profile.
-4. Post again → **Send to my TikTok drafts** → "Sent to your TikTok inbox ✓" → TikTok **Inbox → System notifications** → tap → editor opens. (Never in Profile → Drafts.) If the sheet keeps saying "processing", read its "TikTok status:" line.
+4. Drafts is parked (scope dropped 2026-10-16) — the sheet no longer shows it; never advertise it in the review. (History: uploads were accepted but never reached `SEND_TO_USER_INBOX`.)
 5. Logs (Suga → Logs): `[tiktok] enabled · scopes …`, `[tiktok] job <id> -> direct|inbox publish …`, `[tiktok] job <id> … status PROCESSING_UPLOAD|SEND_TO_USER_INBOX|PUBLISH_COMPLETE|FAILED fail_reason=…`, `[tiktok-store] restored N TikTok connection(s) from Gist`.
 
 ## T3. Consent page / login loop
@@ -464,4 +464,4 @@ After approval: swap key/secret for the Production pair; after the Direct Post a
 - Never set `TIKTOK_FORCE_CONSENT` / `disable_auto_auth=1` — it causes that loop.
 
 ## T4. Demo + review (see TIKTOK-PORTAL-SETUP.md Step 7)
-Clip 1 = consent → Only me → Posted → Profile. Clip 2 = drafts → Sent ✓ → Inbox notification. ≤50 MB each. Portal → Production → App review → replace placeholder → Submit for review. Then Products → Content Posting API → Direct Post → Apply for audit.
+One clip (Direct Post only — drafts parked, don't show it): consent → Only me → Posted → Profile. ≤50 MB. Portal → Production → App review → replace placeholder → Submit for review. Then Products → Content Posting API → Direct Post → Apply for audit.

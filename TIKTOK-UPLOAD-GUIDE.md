@@ -8,6 +8,15 @@ Everything described here is already implemented in this working copy and was te
 against a local mock of TikTok's endpoints (`tools/mock-tiktok.mjs`). What's left for you is the
 TikTok developer‑portal side (Part 1) and real‑account testing (Part 5).
 
+> **STATUS 2026-10-16 — drafts parked, Direct Post only.** The portal **cannot** remove
+> `video.upload` (scopes are bundled with products and cannot be deleted individually), so Obito
+> drops drafts on its own side: `TIKTOK_SCOPES=user.info.basic,video.publish`. Two real tests had
+> the upload accepted but never reached `SEND_TO_USER_INBOX` (the second waited ~10 min), and the
+> live server now reports `inboxUpload:false` on `/api/tiktok/config` — the sheet no longer offers
+> drafts. The code below is unchanged and still supports drafts. To revive: add `video.upload` back
+> to `TIKTOK_SCOPES`, restart, then Disconnect → Continue with TikTok. See `agent-docs/MIGRATION.md`
+> CURRENT STATUS.
+
 ---
 
 ## 0. How it works (30‑second version)
@@ -36,9 +45,10 @@ Two posting modes are supported (TikTok's terms):
 | **Direct Post** | `video.publish` | Video appears on their profile with the caption/privacy you send | Only `SELF_ONLY` (private) posts, max 5 creators / 24 h |
 | **Upload to inbox (draft)** | `video.upload` | TikTok notification → video opens in the TikTok editor, they add caption/sound and post | No privacy restriction |
 
-> **Recommendation for Obito:** ship **both**, but lead with *Send to TikTok drafts*. It is exempt from
-> the private‑only rule while you wait for the audit, and creators usually want to add sounds, text and
-> captions in the TikTok app anyway. Direct Post becomes fully useful only after the audit.
+> **Obito today (2026-10-16): Direct Post only.** Drafts is parked (see the status note at the top).
+> The live consent screen requests only `user.info.basic,video.publish`. Note the trade: while
+> unaudited, *every* post is forced private ("Only me" + account Private) until the Direct Post audit
+> passes — drafts would have been the only public path and it is currently off.
 
 ---
 
@@ -47,10 +57,11 @@ Two posting modes are supported (TikTok's terms):
 1. **Create the app** at <https://developers.tiktok.com> → *Manage apps* → *Connect an app*.
    Fill in name "Obito Studio", icon, category, description.
 2. **Add products:** *Login Kit* and *Content Posting API*. In Content Posting API enable the
-   **Direct Post** configuration (and leave *Upload* enabled).
+   **Direct Post** configuration (*Upload* is bundled and cannot be switched off — ignore it).
 3. **Platform:** add **Web** and set the Redirect URI to exactly
    `https://obitostudio.willsonrai.com.np/api/tiktok/callback` (https required; TikTok compares the string byte‑for‑byte).
-4. **Scopes:** request `user.info.basic` (added by default), `video.upload`, `video.publish`.
+4. **Scopes:** `user.info.basic` (added by default) and `video.publish` are what Obito actually uses;
+   `video.upload` also appears because it ships with Content Posting API and **cannot be removed**.
    For each one you must write *why* you need it — e.g. "video.publish: lets the creator publish the
    video they just optimized in Obito Studio to their own account after choosing privacy and settings."
 5. **Verify URL ownership** (required for Content Posting API). You already generated the file
@@ -83,7 +94,7 @@ Add to `.env` (see `.env.example`):
 TIKTOK_CLIENT_KEY=aw…                      # from the portal (sandbox key while testing)
 TIKTOK_CLIENT_SECRET=…
 TIKTOK_REDIRECT_URI=https://obitostudio.willsonrai.com.np/api/tiktok/callback
-TIKTOK_SCOPES=user.info.basic,video.upload,video.publish
+TIKTOK_SCOPES=user.info.basic,video.publish   # drafts parked — add ,video.upload to revive (see status note at the top)
 TIKTOK_AUDITED=false
 TIKTOK_STATE_SECRET=$(openssl rand -hex 32)   # signs the OAuth state
 TIKTOK_TOKEN_KEY=$(openssl rand -hex 32)      # AES-256-GCM key for stored tokens — keep it, losing it = everyone reconnects
@@ -265,9 +276,9 @@ a 75 MB master → 7 chunks with the remainder merged into the last one, memory 
 - [x] privacy.html / terms.html updated and linked in the portal
 - [x] Sandbox credentials on Suga, `/api/tiktok/config` → `enabled:true`
 - [x] Connect flow works on the real domain (desktop popup; iPhone redirect — see the Safari note in §6)
-- [ ] Inbox/draft post of a real optimized clip lands in your TikTok inbox (`SEND_TO_USER_INBOX` not yet seen)
+- [ ] Parked (2026-10-16): inbox/draft post never reached `SEND_TO_USER_INBOX` (2 tests, incl. ~10 min wait). `video.upload` dropped from `TIKTOK_SCOPES`; code kept, not advertised.
 - [x] Direct post (Only me) completes → `PUBLISH_COMPLETE` (2026-10-16)
 - [ ] Inspector confirms the published video kept 60 fps / HDR (user: a private→public switch seemed to lose HDR; parked)
-- [ ] Demo clips recorded, app review submitted (next), then Content Posting API audit
+- [ ] Demo clip recorded (one, Direct Post only) and app review submitted
 - [ ] After approval: production credentials, `TIKTOK_AUDITED=true`, redeploy
 - [ ] Then: "Connected accounts" dashboard section (linked TikTok name/avatar + Disconnect)

@@ -13,7 +13,7 @@
 * **Git Branches**: `online-rtx-service` is the primary working branch, mirrored to `main`.
 * **Clone Repo**: Keep `/home/willson/Desktop/vague-infinity-clone` updated in sync.
 * **How changes ship**: the agent cannot push. It commits on top of the current upstream tip and hands over a `.patch` (say how many commits it holds); the user runs `git am --3way <patch>` then `git push origin online-rtx-service` — Windows PowerShell and Linux commands in `COMMANDS.md` §P.
-* **Current focus (2026-10-16)**: TikTok "Post to TikTok" is live (sandbox). Next: demo clips → Portal App review submit → Direct Post audit → "Connected accounts" dashboard section. Details: `MIGRATION.md` CURRENT STATUS, `TIKTOK-PORTAL-SETUP.md`, `TIKTOK-UPLOAD-GUIDE.md`.
+* **Current focus (2026-10-16)**: TikTok "Post to TikTok" is live (sandbox, **Direct Post only** — drafts parked, `TIKTOK_SCOPES=user.info.basic,video.publish`). App review **submitted** 2026-10-16 (one clip), awaiting TikTok. The Dashboard **"Connected Accounts"** section ships in the pending patch; optional "post to drafts" stays parked. Details: `MIGRATION.md` CURRENT STATUS, `TIKTOK-PORTAL-SETUP.md`, `TIKTOK-UPLOAD-GUIDE.md`.
 
 ---
 

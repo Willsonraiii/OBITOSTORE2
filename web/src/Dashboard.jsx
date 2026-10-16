@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   LightningIcon, InspectIcon, BookOpenIcon,
@@ -19,9 +19,79 @@ const scrollBlurButton = {
   transition: { duration: 0.44, ease: [0.16, 1, 0.3, 1] }
 };
 
-export default function Dashboard({ onSwitchTab }) {
+export default function Dashboard({ onSwitchTab, apiKey }) {
   const [queueStatus, setQueueStatus] = useState({ busy: false, queuedCount: 0, activeJob: null });
   const [loading, setLoading] = useState(true);
+
+  // ---------- Connected accounts (TikTok) ----------
+  const [tt, setTt] = useState(null);      // /api/tiktok/me payload
+  const [ttBusy, setTtBusy] = useState(false);
+  const [ttErr, setTtErr] = useState('');
+  const ttPopup = useRef(null);
+
+  const ttHeaders = useCallback(
+    () => ({ 'content-type': 'application/json', ...(apiKey ? { 'x-access-token': apiKey } : {}) }),
+    [apiKey]
+  );
+
+  const loadTikTok = useCallback(async () => {
+    if (!apiKey) return;
+    try {
+      const r = await fetch('/api/tiktok/me', { headers: ttHeaders() });
+      if (!r.ok) return;
+      const j = await r.json();
+      setTt(j);
+      if (j.connected) setTtErr('');
+    } catch { /* dashboard is informational — stay quiet on network errors */ }
+  }, [apiKey, ttHeaders]);
+
+  useEffect(() => {
+    if (!apiKey) return undefined;
+    loadTikTok();
+    const interval = setInterval(loadTikTok, 20000);
+    const onMsg = (e) => {
+      if (e.origin !== window.location.origin || e.data?.type !== 'obito-tiktok') return;
+      if (e.data.ok) loadTikTok();
+      else setTtErr(e.data.reason || 'TikTok sign-in was cancelled.');
+    };
+    window.addEventListener('message', onMsg);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('message', onMsg);
+    };
+  }, [apiKey, loadTikTok]);
+
+  const connectTikTok = async () => {
+    setTtErr('');
+    setTtBusy(true);
+    // Same rules as the Post sheet: TikTok's authorize page misbehaves inside a script-opened
+    // Safari tab on touch devices (endless spinner) — use a full-page redirect there instead.
+    const touchDevice = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
+    ttPopup.current = touchDevice ? null : window.open('about:blank', 'obito-tiktok-auth', 'popup=yes,width=520,height=720');
+    try {
+      const r = await fetch('/api/tiktok/connect', { headers: ttHeaders() });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not start TikTok sign-in.');
+      if (ttPopup.current && !ttPopup.current.closed) {
+        ttPopup.current.location = j.url;
+        setTtBusy(false);
+      } else {
+        window.location.href = j.url; // full redirect; TikTok returns to the site afterwards
+      }
+    } catch (e) {
+      ttPopup.current?.close();
+      setTtErr(e.message || 'Could not start TikTok sign-in.');
+      setTtBusy(false);
+    }
+  };
+
+  const disconnectTikTok = async () => {
+    setTtBusy(true);
+    setTtErr('');
+    await fetch('/api/tiktok/disconnect', { method: 'POST', headers: ttHeaders() }).catch(() => {});
+    await loadTikTok();
+    setTtBusy(false);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -151,6 +221,67 @@ export default function Dashboard({ onSwitchTab }) {
           </div>
         </motion.div>
       </div>
+
+      {/* ---------- Connected Accounts ---------- */}
+      {tt?.enabled && (
+        <div className="dash-accounts-section">
+          <motion.div className="dash-section-header" {...scrollBlurCard}>
+            <h2 className="dash-section-title">Connected Accounts</h2>
+            <span className="dash-section-sub">Publish the videos you optimize straight to your own TikTok account</span>
+          </motion.div>
+
+          <motion.div className="dash-accounts-card" {...scrollBlurCard} transition={{ ...scrollBlurCard.transition, delay: 0.04 }}>
+            {tt.connected ? (
+              <>
+                <div className="dash-account-row">
+                  {tt.account?.avatar_url ? (
+                    <img className="dash-account-avatar" src={tt.account.avatar_url} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="dash-account-avatar placeholder">
+                      {(tt.account?.display_name || tt.account?.username || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="dash-account-id">
+                    <span className="dash-account-name">
+                      {tt.account?.display_name || tt.creator?.creator_nickname || tt.account?.username || 'TikTok account'}
+                    </span>
+                    <span className="dash-account-handle">
+                      {tt.account?.username ? `@${tt.account.username}` : (tt.account?.open_id || '')}
+                    </span>
+                  </div>
+                  <div className="dash-account-actions">
+                    <span className="dash-account-state">{tt.creatorError ? 'Needs reconnect' : 'Connected'}</span>
+                    <button type="button" className="dash-account-btn" disabled={ttBusy} onClick={disconnectTikTok}>
+                      {ttBusy ? 'Working…' : 'Disconnect'}
+                    </button>
+                  </div>
+                </div>
+                <p className="dash-account-note">
+                  Videos are only posted when you press Post to TikTok in the Optimizer. Disconnect revokes Obito's access at TikTok.
+                  {!tt.audited && ' While the app is in review TikTok only accepts "Only me" posts from a private account.'}
+                </p>
+              </>
+            ) : (
+              <div className="dash-account-row">
+                <div className="dash-account-id">
+                  <span className="dash-account-name">No TikTok account connected</span>
+                  <span className="dash-account-handle">
+                    {tt.reconnect
+                      ? 'Your TikTok session expired — reconnect to keep posting.'
+                      : 'Connect to publish your optimized masters from the Post to TikTok sheet.'}
+                  </span>
+                </div>
+                <div className="dash-account-actions">
+                  <button type="button" className="dash-account-btn primary" disabled={ttBusy} onClick={connectTikTok}>
+                    {ttBusy ? 'Opening TikTok…' : tt.reconnect ? 'Reconnect TikTok' : 'Connect TikTok'}
+                  </button>
+                </div>
+              </div>
+            )}
+            {ttErr && <p className="dash-account-note err">{ttErr}</p>}
+          </motion.div>
+        </div>
+      )}
 
       {/* ---------- Mastering Workflows ---------- */}
       <div className="dash-workflows-section">

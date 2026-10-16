@@ -568,7 +568,7 @@ export default function App() {
           style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}
           key="dashboard"
         >
-          <Dashboard onSwitchTab={switchTabWithHaptic} />
+          <Dashboard onSwitchTab={switchTabWithHaptic} apiKey={apiKey} />
         </section>
 
         <section

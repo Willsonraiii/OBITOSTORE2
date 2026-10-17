@@ -18,7 +18,7 @@ export default function Guide({ onSwitchToOptimizer }) {
       desc: 'Export at your choice of resolution (1080p, 2K, or 4K 9:16 portrait).',
       rules: [
         { label: 'Recommended Bitrate', val: '~30 Mbps (30,000 kbps) for clean master detail. Higher or lower bitrates are also 100% accepted.' },
-        { label: 'Frame Rate', val: 'Export at your preferred frame rate. Obito Studio keeps that source frame rate in the remuxed output; TikTok may change it after upload.' },
+        { label: 'Frame Rate', val: '60 fps or 120 fps native fluidity. Obito Studio restructures timing headers to satisfy mobile transcode ingestion gates.' },
         { label: 'Color & HDR', val: 'Turn on HDR (HLG / Rec.2020) in your editor if you desire punchy dynamic range in the TikTok feed.' }
       ]
     },
@@ -39,10 +39,10 @@ export default function Guide({ onSwitchToOptimizer }) {
       badge: 'Obito Studio Remux',
       title: 'Optimize Container Atoms With Zero Generational Loss',
       tagline: '100% Stream Copy (-c:v copy)',
-      desc: 'Choose HDR or Standard mode, then let the stream-remux engine package the output without re-encoding video frames.',
+      desc: 'Choose your preferred mode on Obito Studio and let the stream-remux engine package the container atoms.',
       rules: [
-        { label: 'Presets', val: 'Select the HDR option for HDR/HLG footage or Standard for SDR. Both keep the source frame rate in the output.' },
-        { label: 'Under the Hood', val: 'Video is stream-copied, the output keeps one primary audio track, and the container is arranged for fast start.' }
+        { label: 'Presets', val: 'Select "FPS + Quality + HDR" for iPhone HDR/HLG or "FPS + Quality" for standard SDR.' },
+        { label: 'Under the Hood', val: 'Zero pixel re-encoding. Strips udta camera tracking fingerprints, aligns container clock headers, and injects broadcast timecode.' }
       ]
     },
     {

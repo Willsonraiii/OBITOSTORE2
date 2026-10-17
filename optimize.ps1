@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory=$true)][string]$Video,
   [ValidateSet("hdr","standard")][string]$Mode = "hdr"
 )
@@ -18,11 +18,14 @@ $n,$d = $v.r_frame_rate -split "/"; $fps = [double]$n / [double]$d
 $tb = [int](($v.time_base -split "/")[1])
 $mb = [double]$s.format.size / 1MB
 Write-Host ("SOURCE: {0}x{1} {2} fps {3} {4:N1} MiB timescale {5}" -f $v.width,$v.height,$fps,$v.codec_name,$mb,$tb)
+if (-not $a)          { throw "No audio track - not supported" }
+if ($fps -le 30)      { throw "FPS is $fps - method targets above 30 fps" }
 if ($mb -gt 572)      { throw "File is over ~600 MB" }
+if (19200 % $tb -ne 0){ throw "Video timescale $tb does not divide 19200" }
 
 # 2. Optimize
 Push-Location $repo
-$pargs = @("tools/rtx-pipeline.js", $src, $dst, "--preserve-source")
+$pargs = @("tools/rtx-pipeline.js", $src, $dst)
 if ($Mode -eq "standard") { $pargs += "--keep-dv" }
 node @pargs
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Pipeline failed" }
@@ -33,7 +36,7 @@ $o = ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_
 $ov = $o.streams | Where-Object codec_type -eq "video" | Select-Object -First 1
 $oa = @($o.streams | Where-Object codec_type -eq "audio").Count
 $dv = [bool]($ov.side_data_list | Where-Object side_data_type -like "DOVI*")
-Write-Host ("OUTPUT: {0}x{1} {2} fps, {3} frames, {4} audio track(s), DV present: {5}, {6:N2}s" -f $ov.width,$ov.height,$ov.r_frame_rate,$ov.nb_frames,$oa,$dv,[double]$o.format.duration)
+Write-Host ("OUTPUT: {0}x{1} {2} frames {3} audio tracks {4} DV present: {5} {6:N2}s" -f $ov.width,$ov.height,$ov.nb_frames,$ov.color_transfer,$oa,$dv,[double]$o.format.duration)
 $err = ffmpeg -v error -copyts -i $dst -map 0 -c copy -fps_mode passthrough -f null - 2>&1
 if ($err) { Write-Host "COPY TEST: FAIL" -ForegroundColor Red; $err } else { Write-Host "COPY TEST: PASS" -ForegroundColor Green }
 Write-Host "FILE: $dst"

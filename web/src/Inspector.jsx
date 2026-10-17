@@ -418,11 +418,11 @@ export default function Inspector({ apiKey }) {
           </div>
           <div className={'insp-banner' + (report.dovi ? ' dv' : report.hdr !== 'SDR' ? ' hdr' : '')}>
             {report.dovi
-              ? 'Dolby Vision Profile 8 detected — choose HDR mode to preserve compatible HDR signaling in the output.'
+              ? 'Dolby Vision Profile 8 Detected — Use FPS + Quality + HDR mode to prevent washed-out colors on TikTok.'
               : report.hdr !== 'SDR'
-              ? 'Native HDR detected — choose HDR mode for HDR-aware remuxing. TikTok may still re-encode after upload.'
+              ? 'Native HDR Detected — Use FPS + Quality + HDR mode to retain dynamic range in TikTok Studio.'
               : report.checks.length
-              ? 'SDR source — Standard mode keeps the source frame rate in the output and copies video without re-encoding.'
+              ? 'SDR Source — FPS + Quality mode will lock 60/120fps motion fluidity and container clock synchronization.'
               : 'TikTok video information retrieved.'}
           </div>
 

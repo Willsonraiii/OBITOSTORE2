@@ -1,12 +1,5 @@
 # Vague Transcode (Obito Studio) — Migration & Handoff Notes
 
-> **LATEST LOCAL CHANGE (2026-10-17) — source FPS + one audio track**
-> - User requested output should retain original 60/120 FPS and contain one audio track; they are comparing their TikTok Studio result to similar services and report their uploads take longer to render.
-> - In this local working clone, `server-rtx-online.js` now passes `--preserve-source`; `tools/rtx-pipeline.js` faststart-remuxes/rebrands and preserves source video timing, omits the old 30-fps timing edit and synthetic second AAC track. Multi-audio input is still reduced to the primary track; silent input gets a silent AAC track.
-> - Tested synthetic H.264/AAC 60 and 120 fps files: output stayed 60/120 fps, one AAC track, same duration/frame count; video/audio packet payload hashes were identical. A full local API upload→queue→process→download test on 120 fps passed, output decoded cleanly. A two-audio input test produced one AAC track and preserved 60 fps.
-> - Frontend build passed. No real user's HDR/HEVC sample was tested; no TikTok upload/result confirmed. Do not push/deploy until user tests a real sample or approves deployment. Old RTX-style behavior remains available by running pipeline without `--preserve-source`.
-
-
 > **LATEST HANDOFF (2026-10-16) — TikTok integration, ready for the demo + review submission.**
 > Full status, env names, lessons and the ordered next steps are in `MIGRATION.md` → "CURRENT STATUS — 2026-10-16". Short version:
 > - Live site = Suga Cloud, auto-deploys every push to `origin/online-rtx-service` (upstream tip at handoff: `1d2f68d`). Agent delivers `.patch` files; user applies with `git am --3way` and pushes (`COMMANDS.md` §P has Windows + Linux commands).

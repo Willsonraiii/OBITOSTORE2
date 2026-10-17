@@ -1,7 +1,7 @@
 # Obito Studio (vague-transcode)
 
 > **Lossless 60fps/120fps TikTok Remux & Creator Suite**  
-> Preserves source frame rates, Dolby Vision / HDR dynamic range, and cinema timecode without re-encoding a single frame.
+> Preserves source frame rates and HDR metadata without re-encoding a single frame.
 
 **Live Production:** [https://obitostudio.willsonrai.com.np](https://obitostudio.willsonrai.com.np)  
 **Production Port:** `3005` (Managed via systemd `obito-studio.service`)
@@ -11,15 +11,15 @@
 ## ⚡ What It Solves
 
 When creators upload high-end exports (from DaVinci Resolve, Premiere Pro, or CapCut) to TikTok, the platform’s ingestion pipeline frequently:
-1. **Downsamples 60fps / 120fps to 30fps** due to mismatched container clock timescales.
+1. **Can mis-handle retimed MP4 timelines**, making high-frame-rate footage appear slower or longer than intended.
 2. **Compresses and desaturates HDR** footage into flat, washed-out grey tones.
 3. **Creates micro-stutters** caused by variable frame rates or unaligned audio priming.
 
 **Obito Studio** fixes the MP4 container before upload using **100% lossless stream copy (`-c copy`)**:
 * Video frames and audio streams are **never transcoded or compressed**.
 * Harmonizes container clocks to TikTok's native **19200 timescale base**.
-* Injects native **HDR (HLG / PQ)** and Dolby Vision color transfer tags.
-* Injects **SMPTE cinema timecode (`tmcd` + `tref`)** tracks for studio synchronization.
+* Preserves source frame cadence and real-time duration (speed factor 1) across video and both AAC tracks.
+* Injects native **HDR (HLG / PQ)** color transfer tags and preserves supported HDR metadata.
 * Probes local files and remote TikTok links in **0.05 seconds** with virtually zero RAM usage via HTTP Range header inspection.
 
 ---
@@ -34,8 +34,7 @@ When creators upload high-end exports (from DaVinci Resolve, Premiere Pro, or Ca
   * **Liquid Glass UI**: Fluid 60fps animations, iOS-style tactile bottom dock with multi-tab sweep gestures, and high-contrast pro hardware aesthetic.
 * **Backend (`server-rtx-online.js`)**: Production Express server on Node.js.
   * Manages `/api/optimize`, `/api/inspect`, `/api/inspect-link`, auth, and jobs queue.
-  * Integrates `tools/rtx-pipeline.js` for MP4 `stts` sample duration patching and audio `elst` alignment.
-  * Integrates `lib/timecode-injector.js` for atom-level timecode synthesis.
+  * Integrates `tools/rtx-pipeline.js` for MP4 `stts` sample duration patching and audio `elst` alignment, with source timing preserved.
   * Uses HTTP Range request probing (`bytes=0-1572863`) to inspect remote links instantly with zero server memory overhead.
 
 ---

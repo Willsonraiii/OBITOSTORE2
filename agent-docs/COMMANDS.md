@@ -1,7 +1,7 @@
 # COMMANDS — every terminal thing, both machines
 
 Windows = PowerShell 5 (no `&&` — run lines one by one). Linux = bash.
-> Current status is in MIGRATION.md (2026-10-11). Several legacy sections below describe older deployment and upload parameters; verify against actual code before copying commands. Never commit a real ACCESS_TOKEN.
+> Current status is in MIGRATION.md (2026-10-17). Several legacy sections below describe older deployment and upload parameters; verify against actual code before copying commands. Never commit a real ACCESS_TOKEN.
 
 Repo folders: Windows `%USERPROFILE%\Desktop\vague-transcode-4k-test` (older sessions; if it is missing use `%USERPROFILE%\Desktop\vague-transcode`) · Linux `~/Desktop/vague-transcode`.
 Production = Suga Cloud, auto-deploys on push — see **§P** (patch workflow) and **§T** (TikTok) at the end of this file; they are the current, verified sections.
@@ -65,6 +65,34 @@ netstat -ano | findstr :3005
 taskkill /PID <number-from-last-column> /F
 ```
 
+## Current optimizer command — source timing preserved (2026-10-17)
+
+The integrated RTX pipeline now keeps a speed factor of 1 for video and both AAC tracks. It does not convert a 60 fps input to a 30 fps / 2x-duration timeline. The second-AAC helper has a standalone default of 2, so use the pipeline (which explicitly passes `--speed-factor 1`); do not invoke the helper directly for the online output.
+
+Linux:
+```bash
+cd ~/Desktop/vague-transcode
+src="$HOME/Downloads/VIDEO.MP4"
+dst="$HOME/Downloads/VIDEO-optimized.mp4"
+node tools/rtx-pipeline.js "$src" "$dst"
+ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,duration,nb_frames,sample_rate,channels:format=duration,size -of json "$dst"
+ffmpeg -v error -copyts -vsync 0 -i "$dst" -map 0 -c copy -f null -
+```
+
+Windows PowerShell:
+```powershell
+cd "$HOME\Desktop\vague-transcode"
+$src = "$HOME\Downloads\VIDEO.MP4"
+$dst = "$HOME\Downloads\VIDEO-optimized.mp4"
+node tools/rtx-pipeline.js $src $dst
+ffprobe -v error -show_entries "stream=index,codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,duration,nb_frames,sample_rate,channels:format=duration,size" -of json $dst
+ffmpeg -v error -copyts -vsync 0 -i $dst -map 0 -c copy -f null -
+```
+
+Check the pipeline summary for `"speed": 1`, two AAC streams in ffprobe, source-matching frame rate, and duration close to the source (within the final-sample/audio-edit adjustment). FFmpeg should print no error output. TikTok Studio processing was user-confirmed on two separate 60 fps videos; this does not guarantee every codec/resolution combination.
+
+---
+
 ## W7. Validate an output (what "good" means)
 
 ```powershell
@@ -73,7 +101,7 @@ ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r
 ffmpeg -v error -copyts -i "$dst" -map 0 -c copy -fps_mode passthrough -f null -
 ```
 
-Good = `COPY TEST: PASS` (the ffmpeg line prints nothing), no DOVI record, `arib-std-b67`, 2 audio tracks, video 30/1. `-fps_mode` goes AFTER `-c copy`.
+Good = `COPY TEST: PASS` (the ffmpeg line prints nothing), two AAC tracks, output frame rate matching the source, and duration close to the source timeline. Do not expect the old 30/1, doubled-duration output. `-fps_mode` goes AFTER `-c copy`.
 
 ## W8. Save / update the code (git)
 
@@ -185,7 +213,7 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 ffmpeg -v error -copyts -i "$dst" -map 0 -c copy -fps_mode passthrough -f null -
 ```
 
-Same "good" rules as Windows (W7).
+Same source-timing and two-AAC rules as Windows (W7).
 
 ## L7. Save / update the code (git)
 
@@ -353,7 +381,7 @@ Two standalone tools (not in the repo — they live on the Desktop of each machi
 
 ## 14.1 Check what came out of the optimizer
 
-Read-only, no ffmpeg. Names the variant (RTX x2 timing / timescale method / container-only)
+Read-only, no ffmpeg. Names the variant (source-timing / legacy RTX x2 timing / timescale method / container-only)
 and PASS/FAILs the invariants (frames kept, stts regular, declared fps, timescale 19200,
 movie timescale 1000, two audio tracks).
 
@@ -367,12 +395,12 @@ node "$HOME\Desktop\check-optimized.mjs" "C:\path\source.mp4" "out\output.mp4"
 ```
 (The source argument is optional — with one file it just prints the identity.)
 
-## 14.2 Optimize WITHOUT halving the fps
+## 14.2 Legacy standalone keep-FPS tool
 
-The RTX pipeline makes the output declare half the source fps on purpose (60 → 30).
-This tool does the same lossless container work (faststart, edit lists, rebrand, DV strip,
-fps-neutral timescale → 19200) but leaves the declared fps alone. Run it from the repo root
-(it imports `lib/remux.js`).
+This Desktop-only script predates the integrated pipeline's source-timing fix. The normal
+`tools/rtx-pipeline.js` command above is now the supported path: it preserves the source
+frame cadence and passes speed factor 1 to both AAC tracks. Use the standalone script only
+for a separate comparison, not for the standard online optimizer output.
 
 Linux:
 ```bash

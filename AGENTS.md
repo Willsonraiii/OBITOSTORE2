@@ -13,7 +13,7 @@ Depth lives in `agent-docs/` — read in this order before doing project work:
 
 Lossless 60/120 fps + HDR video mastering for TikTok. Express server (`server-rtx-online.js`) + React/Vite SPA (`web/` → builds into `public/`). Production is a **Suga Cloud** container that **auto-deploys on every push to `online-rtx-service`**; live at `https://obitostudio.willsonrai.com.np`. Members and TikTok connections persist through a private GitHub Gist because a redeploy wipes the container disk.
 
-Current focus (2026-10-16): TikTok "Post to TikTok" is live with sandbox credentials, **Direct Post only** (drafts parked). App review is **In review**; "Connected accounts" shipped on the Dashboard.
+Current focus (2026-10-17): a TikTok optimizer timing fix was validated by the user on two separate 60-fps videos. The prepared pipeline change preserves source timing (speed factor 1) while retaining two AAC tracks and unknown mvhd behavior; it is pending push/deployment. TikTok integration remains Direct Post only (drafts parked); app review is In review.
 
 ## Hard rules — never break
 

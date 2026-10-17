@@ -1,8 +1,17 @@
 # OBITO STUDIO — The Project Book
 
-Last updated: **2026-10-16**. **Read this file first, along with AGENTS.md and COMMANDS.md.** That is all you need to run, maintain, and expand the project.
+Last updated: **2026-10-17**. **Read this file first, along with AGENTS.md and COMMANDS.md.** That is all you need to run, maintain, and expand the project.
 
 Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-service` (mirrored to `main`).
+
+---
+
+## CURRENT STATUS — 2026-10-17 (optimizer timing fix)
+
+- **TikTok processing issue reproduced and timing fix confirmed by the user on two distinct 60 fps videos.** The stuck output was 30 fps with roughly 2x duration; the replacement was 60 fps at speed factor 1. Both retained two AAC tracks and the unknown `mvhd` behavior. The first no-doubling output was 200 frames / 3.325 s; the second was 138 frames / 2.292 s. Both passed FFmpeg stream-copy validation, and the user confirmed TikTok processing completed for both.
+- **Implementation:** `tools/rtx-pipeline.js` preserves source frame cadence/timing and explicitly passes `--speed-factor 1` to `tools/build-rtx-second-aac.js`. The helper's standalone default remains 2, so the pipeline must pass the value explicitly. Keep the dual-AAC, unknown-`mvhd`, and other existing output behavior unchanged.
+- The successful files had **no `tmcd` timecode track**. Restoring timecode alone did not resolve the stuck processing and is not part of the fix. Do not re-add timecode injection to this output path without a separate test.
+- This result strongly implicates doubled timeline timing; it is not a guarantee for every resolution/codec. The change is prepared locally as a patch. **It has not been pushed or deployed**; pushing to `online-rtx-service` triggers production redeployment. Follow `COMMANDS.md` → “Current optimizer command” for local checks and the existing patch/push workflow.
 
 ---
 
@@ -60,7 +69,6 @@ Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-ser
   - **Master Download Button**: Refined to a sleek studio action button (`42px` height, subtle sapphire-cyan glass rim) that does not clash with or overpower the terminal.
   - **Optimizer Frame Spacing**: Eliminated all dead voids between headers, mode toggles, file choose buttons, and trust rows. Fixed the mode toggle pill slider to sit flush with zero gap or border artifacts.
   - **Zero AI-Generated / Vibe-Coded Aesthetics**: Stripped all sparkle emojis (`✨`), removed `CREATOR MASTERCLASS` badge pill, and eliminated purple/blue gradient text in favor of solid high-contrast studio white (`#ffffff`).
-- **Cinema Timecode Synthesizer**: Injects SMPTE `tmcd` and `tref` tracks losslessly via `lib/timecode-injector.js`.
 - **Git & Deployment**: Primary branch is `online-rtx-service` (mirrored to `main`). Secondary clone at `/home/willson/Desktop/vague-infinity-clone` kept in lockstep. Experimental Part-2 operates strictly isolated on port `3006`.
 
 ---

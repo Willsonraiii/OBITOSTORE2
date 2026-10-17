@@ -4,16 +4,18 @@
  * Runs the FULL chain from any source MP4 (not just the 600-frame reference):
  *   1. faststartRemux(isoSignature) from lib/remux.js (moov to front, video
  *      timescale -> 19200 when exactly mappable)
- *   2. video timing: x speed factor (60fps -> x2, 120fps -> x4), final-sample
- *      split, edit list, tkhd/mvhd durations, movie timescale 1000
- *   3. audio edit list scaled from the SOURCE priming (x speed)
+ *   2. video timing: preserve source frame cadence and timeline (speed factor 1),
+ *      final-sample split, edit list, tkhd/mvhd durations, movie timescale 1000
+ *   3. audio edit list uses source priming without time stretching (speed factor 1)
  *   4. tools/build-rtx-second-aac.js for the audio trim + second track
  *      (filler count = 9 x audio samples by default: reference has
  *      4710 = 471 x 10 total second-track samples)
  *
- * Everything is derived from the input. Nothing is hardcoded except the
- * RTXFury signature constants (19200 video timescale, 1000 movie timescale,
- * speed = fps/30).
+ * The source frame rate and real-time duration are preserved. The video and
+ * both AAC tracks use an explicit speed factor of 1; do not allow the AAC
+ * helper's standalone default of 2 to stretch audio independently.
+ * RTXFury-style container constants remain 19200 video timescale and 1000
+ * movie timescale.
  *
  * Known unconfirmed rule: the audio edit-list duration. The reference has
  * video elst 19984 / audio elst 19976 (difference 8 ms). Default here:
@@ -29,13 +31,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamFaststartRemux } from '../lib/stream-remux.js';
-import { patchTimecodeTrackFile } from '../lib/timecode-injector.js';
 
 const SECOND_AAC_TOOL = new URL('./build-rtx-second-aac.js', import.meta.url);
 const SPLIT_LAST_STTS_TOOL = new URL('./split-last-stts.js', import.meta.url);
 const TARGET_VIDEO_TIMESCALE = 19200;
 const TARGET_MOVIE_TIMESCALE = 1000;
-const TARGET_FPS = 30;
 const AUDIO_ELST_GAP_MS = 8; // reference: video elst 19984, audio elst 19976
 
 // ---------------------------------------------------------------------------
@@ -399,16 +399,15 @@ if (!videoStts.every((e) => e.duration === uniformDuration)) {
   await fh1.close();
   throw new Error('Video stts is not uniform (variable frame duration). Not supported yet.');
 }
-if (uniformDuration % TARGET_FPS !== 0 && (TARGET_VIDEO_TIMESCALE / uniformDuration) % 1 !== 0) {
-  await fh1.close();
-  throw new Error(`Cannot derive integer fps from stts duration ${uniformDuration}.`);
-}
 const sourceFps = TARGET_VIDEO_TIMESCALE / uniformDuration;
-const speed = sourceFps / TARGET_FPS;
-if (!Number.isInteger(speed) || speed < 1) {
+if (!Number.isInteger(sourceFps) || sourceFps <= 0) {
   await fh1.close();
-  throw new Error(`Source fps ${sourceFps} does not map to an integer speed factor (fps/30).`);
+  throw new Error(`Cannot derive an integer source fps from stts duration ${uniformDuration}.`);
 }
+// TikTok processing accepted the same RTXFury-style output with source timing,
+// while the prior 60 -> 30 fps / 2x timeline remained stuck. Keep timestamps
+// 1:1 for video and audio rather than stretching the media timeline.
+const speed = 1;
 
 const videoFrameCount = videoStts.reduce((a, e) => a + e.count, 0);
 const lastEntry = videoStts[videoStts.length - 1];
@@ -549,6 +548,7 @@ reportProgress(70, 'split-done');
 const toolArgs = [
   fileURLToPath(SECOND_AAC_TOOL), stage2Path, outputPath,
   '--filler-count', String(fillerCount),
+  '--speed-factor', String(speed),
   '--mvhd-v1-unknown',
   '--drop-udta',
 ];
@@ -558,10 +558,6 @@ if (run.status !== 0) {
   process.stderr.write(run.stderr || '');
   throw new Error(`tools/build-rtx-second-aac.js failed with status ${run.status}.`);
 }
-
-// Restore the reference-style tmcd track using a streaming file rewrite.
-const timecodeResult = await patchTimecodeTrackFile(outputPath);
-console.log(`[pipeline] ${timecodeResult.changed ? 'added tmcd timecode track' : 'timecode track already present'}`);
 
 if (!keepTemp) {
   await rm(workDir, { recursive: true, force: true });

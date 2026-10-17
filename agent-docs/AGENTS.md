@@ -17,7 +17,7 @@
 * **100% Lossless Stream Copy (`-c copy`)**: Never recompresses video frames or audio samples unless explicitly requested. Every pixel and audio waveform remains bit-for-bit identical to the source.
 * **19200 Timescale Harmonization**: Synchronizes MP4 container track clocks (`tkhd`/`mvhd`/`stts`) to TikTok’s native 19200 playback base clock, eliminating micro-stutters and forced server-side frame drops.
 * **Dolby Vision & HDR Retagging**: Injects correct color transfer atom metadata (HLG / SMPTE-2084 / BT.2020) so mobile screens display full dynamic range instead of dull, washed-out grey tones.
-* **Cinema Timecode Track Injection**: Generates valid `tmcd` and `tref` tracks to ensure professional multi-track alignment across studio editors.
+* **Source-timed MP4 output (validated 2026-10-17)**: Keeps speed factor 1 for video and both AAC tracks, preserving source frame cadence and avoiding the doubled-duration timeline. The code change is pending push/deployment.
 * **Zero-RAM Remote Link Probing**: Resolves remote TikTok video streams via upstream CDN extraction and probes only the first ~1.5 MB `moov` header atom using HTTP Range headers (`bytes=0-1572863`). Probing finishes in ~0.05 seconds with negligible memory (~1.5 MB buffer, instantly garbage-collected) and zero cloud RAM spikes.
 * **Post to TikTok (Oct 2026)**: Login Kit + Content Posting API integration (`tiktok-routes.js`, `tiktok-store.js`, `lib/tiktok-api.js`, `web/src/TikTokPostSheet.jsx`). Direct Post (`video.publish`) of the optimized master, chunked `FILE_UPLOAD`, status polling, encrypted token store mirrored to a private Gist. The drafts/inbox path (`video.upload`) is implemented but **parked** (scope dropped from `TIKTOK_SCOPES` on 2026-10-16 — see `MIGRATION.md` CURRENT STATUS). UI follows TikTok's UX audit rules (creator nickname, privacy selector with no default, interaction toggles off by default, commercial disclosure, consent text). Status and rules: `MIGRATION.md` CURRENT STATUS, `TIKTOK-UPLOAD-GUIDE.md`, `TIKTOK-PORTAL-SETUP.md`.
 
@@ -32,7 +32,6 @@
 │   ├── rtx-pipeline.js      # Lossless remuxing engine (timescale harmonization, stts patching, audio elst)
 │   └── (experiment scripts) # Standalone duration/speed tests
 ├── lib/
-│   ├── timecode-injector.js # MP4 tmcd & tref track synthesizer
 │   └── ...                  # Container parsing utilities
 ├── web/                     # Modern React + Vite frontend SPA
 │   ├── src/
@@ -152,7 +151,7 @@ npm --prefix /home/willson/Desktop/vague-infinity-clone/web run build
    - Deployed Linux host on port 3005 with systemd service `obito-studio.service`.
    - Created a modern React SPA in `web/` featuring fluid liquid-glass bottom dock, multi-tab sweeping, live terminal telemetry, and persistent library.
 4. **Phase 4 (Oct 2026 - Timecode Injection & Pro Cinema Standards)**:
-   - Integrated `lib/timecode-injector.js` to inject professional `tmcd` and `tref` atoms into mastered outputs.
+   - Historical experiment: timecode injection was tested locally but did not resolve TikTok processing and is not part of the current optimizer output.
 5. **Phase 5 (Oct 2026 - Range-Probed Link Inspector & Studio Polish)**:
    - Integrated TikWM upstream stream resolution + HTTP Range `moov` atom probing (`bytes=0-1572863`). Remote TikTok links now display true FPS, resolution, codec, and timescale in <1 second with zero cloud RAM usage.
    - Stripped away all AI-generated tropes, sparkle icons, and gradient text in favor of an Apple/DaVinci studio design system.

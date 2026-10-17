@@ -1,6 +1,12 @@
 # Vague Transcode (Obito Studio) — Migration & Handoff Notes
 
-> **LATEST HANDOFF (2026-10-16) — TikTok integration, ready for the demo + review submission.**
+> **LATEST HANDOFF (2026-10-17) — optimizer timing fix validated; patch pending push.**
+> - Two distinct 60-fps videos processed successfully in TikTok Studio from local candidates generated with speed factor 1, dual AAC tracks, and unknown `mvhd`; both FFmpeg stream-copy checks were clean.
+> - The previous 60 -> 30 fps / 2x timeline output remained stuck. The tested fix preserves source timing and passes `--speed-factor 1` to the second-AAC helper.
+> - The successful candidates had no `tmcd`. The timecode restoration did not fix processing and is excluded from the final pipeline change.
+> - Patch is prepared locally, not pushed/deployed. Push only the final tested tree; the branch auto-deploys. Follow `MIGRATION.md` 2026-10-17 status and `COMMANDS.md` current optimizer command.
+>
+> **Prior handoff (2026-10-16) — TikTok integration.**
 > Full status, env names, lessons and the ordered next steps are in `MIGRATION.md` → "CURRENT STATUS — 2026-10-16". Short version:
 > - Live site = Suga Cloud, auto-deploys every push to `origin/online-rtx-service` (upstream tip at handoff: `1d2f68d`). Agent delivers `.patch` files; user applies with `git am --3way` and pushes (`COMMANDS.md` §P has Windows + Linux commands).
 > - "Post to TikTok" is live with sandbox credentials. Direct Post "Only me" works end to end; drafts upload fine but `SEND_TO_USER_INBOX` has not been seen yet (drafts land in TikTok Inbox → System notifications, not Profile → Drafts).
@@ -8,13 +14,13 @@
 > - Tomorrow: record 2 demo clips on the iPhone (clear tiktok.com website data in Safari first, account Private, Disconnect first), replace the placeholder video in Portal → App review, Submit. Then the Direct Post audit, then the "Connected accounts" dashboard section.
 > - Do not reintroduce: `disable_auto_auth=1` (loops), color-grade presets (removed on purpose), extra TikTok products (only Login Kit + Content Posting API).
 
-> **LATEST PRODUCTION HANDOFF (2026-10-12):**
+> **HISTORICAL PRODUCTION HANDOFF (2026-10-12; superseded on timing):**
 > **Current Active Branch:** `online-rtx-service` (mirrored to `main`).
 > **Production Service:** Running live on port `3005` via systemd `obito-studio.service` at `https://obitostudio.willsonrai.com.np`.
 > **Primary Architecture:** React 18 SPA in `web/` built with Vite to `public/`, backed by Node.js `server-rtx-online.js`.
 > **Key Capabilities Active:**
 > 1. 100% Stream Copy (`-c copy`) lossless remuxing with 19200 timescale clock harmonization.
-> 2. SMPTE Cinema Timecode injection (`tmcd` & `tref` tracks) via `lib/timecode-injector.js`.
+> 2. Source-timed MP4 output (speed factor 1); the prior timecode-track experiment was not part of the successful candidates.
 > 3. Zero-RAM Remote Link Inspector with TikWM CDN resolution and HTTP Range header probing (`bytes=0-1572863`, 1.5MB), extracting true FPS, resolution, codec, and timescale in <1s.
 > 4. Liquid glass mobile UI with tactile bottom dock, multi-tab sweep gestures, and no AI-generated tropes (zero sparkle emojis, zero purple gradients).
 > **For complete agent guidelines, see [AGENTS.md](file:///home/willson/Desktop/vague-transcode/AGENTS.md).**

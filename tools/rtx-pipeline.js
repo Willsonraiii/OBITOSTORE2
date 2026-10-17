@@ -29,6 +29,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamFaststartRemux } from '../lib/stream-remux.js';
+import { patchTimecodeTrackFile } from '../lib/timecode-injector.js';
 
 const SECOND_AAC_TOOL = new URL('./build-rtx-second-aac.js', import.meta.url);
 const SPLIT_LAST_STTS_TOOL = new URL('./split-last-stts.js', import.meta.url);
@@ -557,6 +558,10 @@ if (run.status !== 0) {
   process.stderr.write(run.stderr || '');
   throw new Error(`tools/build-rtx-second-aac.js failed with status ${run.status}.`);
 }
+
+// Restore the reference-style tmcd track using a streaming file rewrite.
+const timecodeResult = await patchTimecodeTrackFile(outputPath);
+console.log(`[pipeline] ${timecodeResult.changed ? 'added tmcd timecode track' : 'timecode track already present'}`);
 
 if (!keepTemp) {
   await rm(workDir, { recursive: true, force: true });

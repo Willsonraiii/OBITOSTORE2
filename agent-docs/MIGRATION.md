@@ -6,7 +6,9 @@ Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-ser
 
 ---
 
-## CURRENT STATUS — 2026-10-16 (TikTok integration — read this first)
+## CURRENT STATUS — 2026-10-17 (source-FPS/single-audio update — read this first)
+
+**Optimizer output behavior changed locally on 2026-10-17:** the server now uses a lossless fast-start remux path that retains the source frame rate and emits one primary audio track. It skips the previous timing transform that reported 60/120 fps sources as 30 fps and the synthetic second AAC track. Synthetic 60/120 fps tests and a local 120 fps API job passed with identical video/audio packet hashes, same duration/frame count, and one AAC track. This has NOT been validated on the user's real HDR/HEVC source or on TikTok and is NOT deployed. TikTok may still re-encode uploads. See the latest handoff in `agent-docs/HANDOFF.md`.
 
 **Where the code runs**
 - Live site `https://obitostudio.willsonrai.com.np` = **Suga Cloud** container (dashboard.suga.app → project `obitoo` → service `vague-transcode`, Cloudflare in front). It rebuilds automatically on **every push to `origin/online-rtx-service`**, so built assets in `public/` must be committed (`npm --prefix web run build` before committing frontend changes). A redeploy wipes the container disk and restarts the server (in-memory jobs are lost — by design).
@@ -81,10 +83,12 @@ Repo: https://github.com/Willsonraiii/vague-transcode — branch `online-rtx-ser
 
 ## 1. What This Project Is (In Plain English)
 
-A studio web application that prepares high-framerate (60fps/120fps), HDR (HLG/PQ), and Dolby Vision videos so **TikTok retains native 60fps fluidity and HDR dynamic range** instead of crushing them down into blurry 30fps SDR.
+A studio web application that losslessly remuxes video while retaining the source frame rate in the output and including one primary audio track. HDR handling depends on the selected mode. **TikTok may re-encode uploads and change delivered frame rate, color, resolution, or bitrate; the tool does not guarantee the platform's result.**
 
-### Core Guarantees:
-1. **100% Stream Copy Lossless (Default)**: Container surgery only — zero frame re-encoding, zero bits of quality secretly touched or dropped.
+### Current Output Behavior:
+1. **Video stream-copy**: Video packets are not re-encoded. The source frame rate is retained in the remuxed file.
+2. **One audio track**: The output uses the primary source audio track; secondary audio tracks are omitted. Silent sources receive silent AAC.
+3. **Legacy timing experiment**: The old 30-fps/two-AAC-track transformation remains in the pipeline only for explicit legacy use; server jobs use the source-preserving path.
 2. **Zero-RAM Disk-Streaming Engine**: Reads only the tiny 100–200 KB `moov` header into memory; streams gigabyte-scale `mdat` payloads straight from disk to disk via 64 KB native streams. Runs comfortably in **< 15 MB RAM** (passes under Suga Cloud’s strict 256 MB free-tier limit).
 3. **Resilient Chunked Uploads**: 512 KB slices, 90-second timeouts, idempotent retries (automatic 409 offset sync), instant stale socket termination, and disk `truncate()` on dropped packets so zero corrupt bytes ever accumulate.
 4. **Color Grade Presets (Optional)**: 6 curated aesthetic looks (Original Lossless, Vibrant Pop, Cinematic Warm, Teal & Orange, Moody Noir, Vintage 35mm). Available both **During** (pre-optimize pass) and **After** (instant post-optimize render on the Done screen without re-uploading).

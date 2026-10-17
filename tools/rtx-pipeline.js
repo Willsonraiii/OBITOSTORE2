@@ -1,27 +1,18 @@
 /**
  * Generic RTXFury-style pipeline experiment.
  *
- * Runs the FULL chain from any source MP4 (not just the 600-frame reference):
- *   1. faststartRemux(isoSignature) from lib/remux.js (moov to front, video
- *      timescale -> 19200 when exactly mappable)
- *   2. video timing: x speed factor (60fps -> x2, 120fps -> x4), final-sample
- *      split, edit list, tkhd/mvhd durations, movie timescale 1000
- *   3. audio edit list scaled from the SOURCE priming (x speed)
- *   4. tools/build-rtx-second-aac.js for the audio trim + second track
- *      (filler count = 9 x audio samples by default: reference has
- *      4710 = 471 x 10 total second-track samples)
+ * Current online service behavior (`--preserve-source`): fast-start remux,
+ * retain source frame timing, and output one primary audio track. Video packets
+ * are copied without re-encoding. Multi-audio sources are reduced to their
+ * primary audio track; silent sources receive a silent AAC track.
  *
- * Everything is derived from the input. Nothing is hardcoded except the
- * RTXFury signature constants (19200 video timescale, 1000 movie timescale,
- * speed = fps/30).
- *
- * Known unconfirmed rule: the audio edit-list duration. The reference has
- * video elst 19984 / audio elst 19976 (difference 8 ms). Default here:
- * audio elst = video elst - 8. Override with --audio-elst-ms N.
+ * Legacy RTXFury timing/second-AAC experiment remains available when
+ * `--preserve-source` is omitted. That path retimes high-fps material to 30 fps
+ * and adds a synthetic second AAC track; it is not the online-service default.
  *
  * Usage:
- *   node tools/rtx-pipeline.js INPUT.mp4 OUTPUT.mp4 \
- *     [--audio-elst-ms N] [--filler-count N] [--keep-temp]
+ *   node tools/rtx-pipeline.js INPUT.mp4 OUTPUT.mp4 --preserve-source
+ *   node tools/rtx-pipeline.js INPUT.mp4 OUTPUT.mp4 [legacy timing options]
  */
 import { readFile, writeFile, mkdtemp, rm, stat, open, copyFile } from 'node:fs/promises';
 import { spawnSync, spawn } from 'node:child_process';
@@ -203,6 +194,7 @@ let fillerCountOverride = null;
 let keepTemp = false;
 let keepDv = false;
 let ensureH264 = false;
+let preserveSource = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -211,6 +203,7 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--keep-temp') keepTemp = true;
   else if (arg === '--keep-dv') keepDv = true; // mode "standard": leave Dolby Vision signalling untouched
   else if (arg === '--ensure-h264') ensureH264 = true;
+  else if (arg === '--preserve-source') preserveSource = true;
   else positional.push(arg);
 }
 
@@ -306,6 +299,32 @@ const dvStripped = remuxed.dvStripped;
 const rebranded = remuxed.rebranded;
 reportProgress(35, 'remuxed');
 
+// Lossless compatibility path: retain source video timing and one audio track.
+// The remux above has already normalized multi-audio inputs to the primary
+// audio track, synthesized audio only for silent inputs, and applied faststart.
+// Skip the legacy 30-fps timing transform and synthetic second-AAC-track step.
+if (preserveSource) {
+  await copyFile(stage1Path, outputPath);
+  if (!keepTemp) await rm(workDir, { recursive: true, force: true });
+  reportProgress(95, 'source timing preserved');
+  const outputStat = await stat(outputPath);
+  const summary = {
+    mode: keepDv ? 'standard' : 'hdr',
+    ensureH264,
+    preserveSource: true,
+    inputBytes,
+    outputBytes: outputStat.size,
+    sizeGrowth: outputStat.size - inputBytes,
+    dvStripped,
+    rebranded,
+    audioTracks: 1,
+    warnings: [],
+  };
+  console.log(JSON.stringify(summary, null, 2));
+  console.log('PIPELINE_RESULT ' + JSON.stringify(summary));
+}
+
+if (!preserveSource) {
 // ---------------------------------------------------------------------------
 // 2. Read only the header of stage1.mp4 to derive and apply timing transforms
 // ---------------------------------------------------------------------------
@@ -604,3 +623,4 @@ const summary = {
 console.log(JSON.stringify(summary, null, 2));
 // Machine-readable single line for server-rtx-online.js
 console.log('PIPELINE_RESULT ' + JSON.stringify(summary));
+}

@@ -73,7 +73,7 @@ ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r
 ffmpeg -v error -copyts -i "$dst" -map 0 -c copy -fps_mode passthrough -f null -
 ```
 
-Good = `COPY TEST: PASS` (the ffmpeg line prints nothing), no DOVI record, `arib-std-b67`, 2 audio tracks, video 30/1. `-fps_mode` goes AFTER `-c copy`.
+Good = `COPY TEST: PASS` (the ffmpeg line prints nothing), expected HDR metadata for the chosen mode, one audio track, and output frame rate matching the source. TikTok may still re-encode after upload. `-fps_mode` goes AFTER `-c copy`.
 
 ## W8. Save / update the code (git)
 
@@ -155,7 +155,7 @@ mkdir -p "$repo/out"
 dst="$repo/out/$(basename "${src%.*}")-optimized.mp4"
 [ "$src" != "$dst" ] || { echo "Output would overwrite the source"; exit 1; }
 cd "$repo"
-if [ "$mode" = standard ]; then node tools/rtx-pipeline.js "$src" "$dst" --keep-dv; else node tools/rtx-pipeline.js "$src" "$dst"; fi
+if [ "$mode" = standard ]; then node tools/rtx-pipeline.js "$src" "$dst" --keep-dv --preserve-source; else node tools/rtx-pipeline.js "$src" "$dst" --preserve-source; fi
 echo "--- validate ---"
 ffprobe -v error -show_entries stream=codec_type,width,height,r_frame_rate,color_transfer -show_entries format=duration,size -of json "$dst"
 if [ -z "$(ffmpeg -v error -copyts -i "$dst" -map 0 -c copy -fps_mode passthrough -f null - 2>&1)" ]; then

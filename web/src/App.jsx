@@ -31,14 +31,14 @@ const ARCH_PILLARS = [
   {
     Icon: FpsIcon,
     title: 'Container Timing Architecture',
-    subtitle: '60fps & 120fps TikTok Ingestion Lock',
-    desc: 'Standard video transcode engines enforce rigid timing heuristics. When high-frame-rate footage arrives with non-standard container clocks, platform gates downsample playback to 30fps. Obito Studio restructures container atom clocks to ensure seamless high-framerate recognition without touching compressed video frames.'
+    subtitle: 'Source frame rate retained in the output',
+    desc: 'The output keeps the source video frame rate and copies video packets without re-encoding. TikTok processes every upload separately and may change the delivered frame rate.'
   },
   {
     Icon: LayersIcon,
     title: 'Zero Generational Loss',
     subtitle: '-c copy Pure Stream Copy',
-    desc: 'Standard transcoders decompress every frame and re-compress with lossy encoders (libx264/libx265), degrading high-frequency textures and edge sharpness. Obito Studio never touches compressed video or audio packets. Only moov/trak headers are modified, preserving 100% of master bitrate.'
+    desc: 'Video packets are stream-copied without re-encoding. The output contains one audio track: the primary source track, or silent AAC when the source has no audio.'
   },
   {
     Icon: HdrIcon,
@@ -63,31 +63,31 @@ const WORKFLOW_STEPS = [
   {
     step: '02',
     name: 'Hardware-Accelerated Stream Remux',
-    detail: 'Resumable chunked ingestion streams to your server. The lossless pipeline restructures MP4 box atom layouts, interleaves audio streams, and normalizes duration timescale.'
+    detail: 'Resumable upload sends the source to the server. A lossless fast-start remux keeps the source frame rate and outputs one primary audio track.'
   },
   {
     step: '03',
     name: 'Publish via TikTok Studio',
-    detail: 'Download the verified master MP4 and publish directly through TikTok Studio (Desktop or Web). TikTok acknowledges the native high-framerate container and delivers full 60fps & HDR playback.'
+    detail: 'Download the remuxed MP4. It retains the source frame rate and contains one primary audio track.'
   }
 ];
 
 const FAQ_ITEMS = [
   [
-    'Does Obito Studio re-encode or compress my footage?',
-    'Never. Obito Studio strictly executes stream-copy remuxing (`-c copy`). Video packets and audio streams remain bit-for-bit identical to your export master. Zero generational degradation occurs.'
+    'Does Obito Studio re-encode my video?',
+    'No. Video packets are copied without re-encoding. The output keeps one audio track—the primary source track, or silent AAC for a silent video.'
   ],
   [
     'Which preset should I select?',
-    'Select "Apple HDR & Dolby Vision" for any iPhone HDR, 10-bit Log, or Dolby Vision clips to prevent TikTok from stripping wide color gamut information. Select "Standard Lossless" for SDR, gaming captures, and standard screen recordings.'
+    'Choose the HDR mode for HDR/HLG footage and Standard for SDR. These modes control HDR/Dolby Vision handling; both retain the source frame rate in the output. TikTok may still re-encode either upload.'
   ],
   [
     'What happens if my connection drops during upload?',
     'Uploads are chunked and completely resumable. Received data chunks remain safely cached on your server for up to one hour. Re-selecting the file or tapping Resume continues instantly without restarting.'
   ],
   [
-    'Why do some local video players display 00:00 duration?',
-    'The remuxed MP4 contains a specialized dual-audio timescale structure engineered specifically for TikTok\'s ingestion pipeline. Some legacy desktop video players show 00:00, but TikTok\'s mobile app and TikTok Studio parse the duration with 100% precision.'
+    'How does Obito Studio handle frame rate and audio?',
+    'The remuxed output keeps the source frame rate and includes one audio track: the primary source audio, or silent AAC if the source has no audio.'
   ],
   [
     'What are the supported file sizes and formats?',
@@ -102,15 +102,15 @@ const FAQ_ITEMS = [
 const HERO_MESSAGES = [
   {
     title: 'TIKTOK LOSSLESS MASTER',
-    sub: 'Preserve native high FPS (60fps, 120fps+) & HDR with zero TikTok compression.'
+    sub: 'Keep source frame rate in the output, with lossless video remuxing and HDR handling.'
   },
   {
-    title: '60FPS NATIVE FLUIDITY',
-    sub: 'Never let TikTok downgrade your high frame-rate mobile edits to 30fps.'
+    title: 'SOURCE FPS PRESERVED',
+    sub: '60 or 120 fps in; the same source frame rate in the remuxed output.'
   },
   {
-    title: '100% BIT-FOR-BIT LOSSLESS',
-    sub: 'Pure stream-copy remuxing — video packets and audio streams stay untouched.'
+    title: 'LOSSLESS VIDEO REMUX',
+    sub: 'Video packets are copied; one primary audio track is included in the output.'
   },
   {
     title: 'APPLE HDR & DOLBY VISION',

@@ -217,18 +217,13 @@ a 75 MB master → 7 chunks with the remainder merged into the last one, memory 
    The RTX timing trick was only ever validated through Studio uploads; API ingestion *may* normalize
    differently. Do this before investing in polish — if the API path loses the 60 fps result, Direct
    Post is pointless for Obito and inbox/draft (which goes through the app's publish path) is the one to keep.
-5. Also test a clip whose master has **two audio tracks** (the pipeline adds a second AAC track) — the
-   API docs say "1 video"; confirm TikTok accepts the extra audio track rather than failing with `file_format_check_failed`.
+5. Test a source with multiple audio tracks. The current optimizer keeps the primary audio track only, so verify the one-track output and its audio in TikTok after upload.
 
 ---
 
 ## 6. Obito‑specific gotchas
 
-* **Runtime doubles.** The RTX timing method makes a 60 fps source play at 30 fps container speed,
-  so the master's duration is ~2× the source (a 3 s clip became 5.98 s in testing). TikTok rejects
-  anything over `max_video_post_duration_sec` (180 s for most accounts, 300/600 for some). The route
-  checks this with ffprobe and returns a clear error; surface the limit in the UI *before* optimizing
-  (e.g. "sources longer than 90 s cannot be posted directly from Obito on a 3‑minute account").
+* **Current output timing.** The optimizer preserves source frame timing and duration, and outputs one primary audio track. TikTok may still re-encode or alter the uploaded result. Direct Post checks the output duration against TikTok's `max_video_post_duration_sec` limit.
 * **Job TTL.** Masters are deleted 1 h after completion. The TikTok upload reads `jobs/<id>/output.mp4`
   — a slow 600 MB upload started at minute 55 could lose its file. Either bump `JOB_TTL_MS` or mark
   jobs with an in‑flight `tiktok.state` as not‑expirable in the cleanup timer.

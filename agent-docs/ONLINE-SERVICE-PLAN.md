@@ -1,5 +1,12 @@
 # Online Optimizer Service — Working Build Plan
 
+## LOCAL EXPERIMENT — PRESERVE SOURCE FPS + SINGLE AUDIO TRACK (2026-10-17)
+
+User requested output to retain source 60/120 fps and contain one audio track, rather than the existing 30-fps timing transform and synthetic second AAC track. Current local working clone adds a `--preserve-source` path: it keeps the lossless faststart/rebrand/HDR handling, skips timing surgery and second-track generation, and outputs one primary audio track (silent AAC if input is silent). Server jobs now invoke this path by default.
+
+Synthetic validation: 60/120 fps H.264/AAC inputs retained exact FPS, frame count and duration; audio/video packet SHA-256 payload hashes matched input. Multi-audio test reduced to one AAC track with 60 fps retained. Full local API job (120 fps upload through download) succeeded and output decoded with FFmpeg. Frontend build succeeded. This is not yet validated on the user's real HDR/HEVC file or in TikTok Studio and has not been deployed. Compare TikTok render behavior with same source before making additional timing/metadata changes.
+
+
 ## LATEST RESULT — WINDOWS 4K60 REAL VIDEO VALIDATED IN TIKTOK STUDIO (2026-09-30)
 
 USER-CONFIRMED: the third real video (first 4K60) worked in TikTok Studio and HDR is delivered (the project's main target).

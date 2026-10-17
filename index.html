@@ -21,8 +21,8 @@
 <!-- ============ STEP 1 ============ -->
 <section id="s1">
 <h1>Your video is losing quality<br>before TikTok even sees it.</h1>
-<p class="lead">Variable frame rate turns 60fps into 30. Bad colour tags make HDR look grey.
-A lossy transfer from your phone already threw away half the detail.
+<p class="lead">Variable frame rate can be handled differently by upload platforms. Bad colour tags can make HDR look grey.
+A lossy transfer from your phone may reduce detail before upload.
 <mark>Check yours in 3 seconds.</mark></p>
 <div class="card">
 <div class="drop" id="drop">
@@ -65,8 +65,7 @@ normal duration. That's the file worth dropping here.</p>
 <div class="card">
 <h2>What it finds</h2>
 <div class="issue bad"><div class="h"><i>✗</i><b>Variable frame rate</b><span>the 60→30 killer</span></div>
-<p>The single most common reason a 60fps export gets delivered at 30. Platforms re-time VFR
-footage. Read straight from the frame timing table, not guessed.</p></div>
+<p>Variable-frame-rate footage may be re-timed by upload platforms. This inspector reads frame timing directly; check the downloaded post to see what the platform delivered.</p></div>
 <div class="issue bad"><div class="h"><i>✗</i><b>Broken HDR tags</b><span>the grey look</span></div>
 <p>Wide-gamut pixels labelled as SDR — the classic CapCut export fault. It's why HDR footage
 comes out washed out and milky.</p></div>
@@ -178,7 +177,7 @@ const fmt = p.hdrFormat==='dolbyvision' ? 'Dolby Vision 8.4'
 const big = Math.max(p.width,p.height) > 1920;
 const list = [];
 list.push(issue(p.vfr?'bad':'ok','Frame rate',`${p.fps} fps ${p.vfr?'VFR':'CFR'}`,
-p.vfr ? 'Variable frame rate. TikTok will re-time this — your 60fps export commonly lands at 30fps.'
+p.vfr ? 'Variable frame rate detected. TikTok may re-time footage during upload; compare the downloaded post to verify the delivered frame rate.'
 : 'Constant. This will be preserved.'));
 list.push(issue('ok','Resolution',`${p.width}×${p.height}`,
 big ? "4K — accepted AND delivered: our 4K60 test post came back from TikTok as 4K 60 (measured Sept 2026). The old “TikTok only delivers 1080p” claim did not hold. HDR tags survived in the downloaded file, but in-app HDR playback never engaged on that (patched) upload — see the upload checklist."
@@ -693,9 +692,7 @@ Instead try the <b>iOS share sheet</b>: open the Files app → long-press the vi
 <li><b>Don't edit after posting</b> — any sound, trim or filter makes TikTok re-process it</li>
 <li>Wait 30+ min, then check on your phone</li>
 </ol>
-<p class="tiny" style="margin-top:10px">The file showing <b>00:00</b> in your gallery is
-expected — that is the patch working, not a broken file. If it shows a normal duration
-<i>after</i> uploading, the route you used re-encoded it — that's the gallery, not the patch.</p>
+<p class="tiny" style="margin-top:10px">If a player shows an incorrect duration, do not assume the file is correct or broken from that display alone. Check its metadata and playback in a second player before uploading.</p>
 </div>`;
 return `<div class="card">
 <div class="step"><i>5</i><b>Now upload it — this part matters</b></div>
@@ -706,9 +703,7 @@ in desktop mode)
 <div style="font-weight:500;font-size:13px;margin-top:5px">
 <b>The method:</b> Studio upload as <b>"Only me"</b> → open the app → the post →
 flip visibility to <b>Everyone</b>. Community-verified result: <b>HDR · high
-quality · high fps</b>, no 30fps conversion. Studio is a <i>file</i> route — the
-app's own upload path degrades quality, which is exactly why you process the file
-first and hand it to Studio instead.<br>
+quality · high fps</b>, as reported by some creators. TikTok may still re-encode uploads, so verify the result on your own account.<br>
 Phone routes (share sheet, Files picker) are fallbacks only — for accounts where
 Studio isn't available.</div>
 </div>
@@ -731,8 +726,7 @@ then open <code>http://YOUR-PC-IP:8000</code> on the phone</li>
 If your picker shows a <b>Files / browse</b> option — use it. The original bytes, HDR tags
 and all, pass through untouched.<br><br>
 If it <b>only offers the gallery</b> (current app versions do — checked Sept 2026):
-the OS may hand TikTok a re-encoded, flattened copy (that's the old "gallery = 30fps SDR"
-claim, and it has never been measured on our account). Post <b>one test clip</b> via the
+the OS may hand TikTok a re-encoded, flattened copy (the exact effect depends on the device and has not been measured on our account). Post <b>one test clip</b> via the
 gallery, wait 30 minutes, check on your phone — then run <b>"Did it survive?"</b> below on
 the downloaded post. That single result tells us whether the gallery route keeps HDR or
 kills it. You can also try the <b>iOS share sheet</b>: Files app → long-press the video →

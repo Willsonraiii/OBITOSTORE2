@@ -223,6 +223,8 @@ function startNextJob() {
   const workerArgs = ['--expose-gc', '--max-old-space-size=96', PIPELINE_TOOL, job.inputPath, job.outputPath];
   if (job.mode === 'standard') workerArgs.push('--keep-dv');
   if (job.ensureH264) workerArgs.push('--ensure-h264');
+  // Current product behavior: preserve source FPS and output one audio track.
+  workerArgs.push('--preserve-source');
 
   const child = spawn(process.execPath, workerArgs, {
     cwd: ROOT,

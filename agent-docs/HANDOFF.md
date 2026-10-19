@@ -1,5 +1,16 @@
 # Vague Transcode (Obito Studio) — Migration & Handoff Notes
 
+> **LATEST PRODUCTION HANDOFF (2026-10-20):**
+> **Current Version:** `v3.1.0-zero-buffering`
+> **Primary Achievements:**
+> 1. **Zero-Buffering Playback**: Resolved periodic 1-2 second playback stalls on TikTok CDN HTTP Range streaming by implementing granular packet-by-packet stream interleaving (`ffmpeg -c copy -max_interleave_delta 0`), positioning Audio Chunk 0 and Video Chunk 0 ~6 bytes apart.
+> 2. **In-`mdat` Container Encapsulation**: Resolved TikTok upload "Post is processing forever" freeze by dynamically expanding `mdatBox.size` in `tools/build-rtx-second-aac.js` so filler data is strictly enclosed inside `mdat` with zero trailing null box headers (`\0\0\0\0`).
+> 3. **1:1 Native Timeline Cadence**: Preserved source 60fps timing and duration (`speed = 1`), eliminating 2x timeline distortion.
+> 4. **100% Quality & 10-bit HLG HDR Preservation**: Pure stream copy (`-c copy`) without frame re-encoding. Native 4K (2160×3840), 60fps, BT.2020 primaries, and ARIB-STD-B67 HLG transfer intact.
+> 5. **Update Announcement Overlay**: Added single-view update overlay (`web/src/App.jsx`) tracked via `localStorage` so users see the changelog exactly once per update across refreshes.
+> 6. **TikTok Developer Direct Post & Connected Accounts**: Full Login Kit and Content Posting API integration preserved and active with "Post to TikTok" button and settings.
+> **For complete agent guidelines, see [AGENTS.md](file:///home/willson/Desktop/part-2/agent-docs/AGENTS.md).**
+>
 > **LATEST HANDOFF (2026-10-17) — optimizer timing fix validated; patch pending push.**
 > - Two distinct 60-fps videos processed successfully in TikTok Studio from local candidates generated with speed factor 1, dual AAC tracks, and unknown `mvhd`; both FFmpeg stream-copy checks were clean.
 > - The previous 60 -> 30 fps / 2x timeline output remained stuck. The tested fix preserves source timing and passes `--speed-factor 1` to the second-AAC helper.

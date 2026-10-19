@@ -98,6 +98,24 @@ The user strongly dislikes and forbids generic AI-style visuals:
 * Format responses in **few, clear, detailed, and understandable bullet points**.
 * Remember prior user instructions across conversation turns without requiring the user to repeat themselves.
 
+### G. PROTECTED GOLDEN PIPELINE (Zero-Buffering + TikTok Ingestion Pass-Through)
+The core TikTok mastering engine is protected by immutable golden backups:
+- `tools/rtx-pipeline.js.protected-golden`
+- `tools/build-rtx-second-aac.js.protected-golden`
+
+Any modifications to the mastering pipeline must honor these four fundamental rules:
+1. **Granular Packet Interleaving (`-max_interleave_delta 0`)**:
+   - Places Audio Chunk 0 and Video Chunk 0 adjacent (within ~6 bytes) at the beginning of `mdat` and maintains tight interleaving across the entire file. This eliminates the 2MB audio starvation gaps that cause second-to-second buffering stalls on TikTok CDN HTTP Range streaming.
+2. **In-`mdat` Container Encapsulation**:
+   - In `tools/build-rtx-second-aac.js`, `mdatBox.size` expands to encapsulate all second track filler samples strictly within `mdat`.
+   - Prevents illegal null box headers (`\0\0\0\0` / length 4) that cause TikTok ingestion workers to hang indefinitely on "Processing".
+3. **Native 1:1 Cadence Timeline (`speed = 1`)**:
+   - Maintains source 60fps frame duration and real audio sample timestamps.
+   - Eliminates 2x timeline stretching (`speed = sourceFps / TARGET_FPS`) that triggers TikTok timeline calculation errors.
+4. **100% Quality & 10-bit HLG HDR Preservation**:
+   - Strict `-c copy` lossless stream copy. Never re-encode 4K HEVC frames.
+   - Preserves 2160×3840 native resolution, 60fps fluidity, BT.2020 color primaries, and ARIB-STD-B67 HLG transfer curve.
+
 ---
 
 ## 5. Build & Deployment Workflow

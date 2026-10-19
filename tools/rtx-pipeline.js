@@ -4,16 +4,18 @@
  * Runs the FULL chain from any source MP4 (not just the 600-frame reference):
  *   1. faststartRemux(isoSignature) from lib/remux.js (moov to front, video
  *      timescale -> 19200 when exactly mappable)
- *   2. video timing: x speed factor (60fps -> x2, 120fps -> x4), final-sample
- *      split, edit list, tkhd/mvhd durations, movie timescale 1000
- *   3. audio edit list scaled from the SOURCE priming (x speed)
+ *   2. video timing: preserve source frame cadence and timeline (speed factor 1),
+ *      final-sample split, edit list, tkhd/mvhd durations, movie timescale 1000
+ *   3. audio edit list uses source priming without time stretching (speed factor 1)
  *   4. tools/build-rtx-second-aac.js for the audio trim + second track
  *      (filler count = 9 x audio samples by default: reference has
  *      4710 = 471 x 10 total second-track samples)
  *
- * Everything is derived from the input. Nothing is hardcoded except the
- * RTXFury signature constants (19200 video timescale, 1000 movie timescale,
- * speed = fps/30).
+ * The source frame rate and real-time duration are preserved. The video and
+ * both AAC tracks use an explicit speed factor of 1; do not allow the AAC
+ * helper's standalone default of 2 to stretch audio independently.
+ * RTXFury-style container constants remain 19200 video timescale and 1000
+ * movie timescale.
  *
  * Known unconfirmed rule: the audio edit-list duration. The reference has
  * video elst 19984 / audio elst 19976 (difference 8 ms). Default here:
@@ -24,19 +26,16 @@
  *     [--audio-elst-ms N] [--filler-count N] [--keep-temp]
  */
 import { readFile, writeFile, mkdtemp, rm, stat, open, copyFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { spawnSync, spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamFaststartRemux } from '../lib/stream-remux.js';
-import { getPresetById } from '../lib/color-presets.js';
 
 const SECOND_AAC_TOOL = new URL('./build-rtx-second-aac.js', import.meta.url);
 const SPLIT_LAST_STTS_TOOL = new URL('./split-last-stts.js', import.meta.url);
 const TARGET_VIDEO_TIMESCALE = 19200;
 const TARGET_MOVIE_TIMESCALE = 1000;
-const TARGET_FPS = 30;
 const AUDIO_ELST_GAP_MS = 8; // reference: video elst 19984, audio elst 19976
 
 // ---------------------------------------------------------------------------
@@ -204,7 +203,6 @@ let audioElstMsOverride = null;
 let fillerCountOverride = null;
 let keepTemp = false;
 let keepDv = false;
-let colorPreset = 'original';
 let ensureH264 = false;
 
 for (let i = 0; i < args.length; i++) {
@@ -214,7 +212,6 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--keep-temp') keepTemp = true;
   else if (arg === '--keep-dv') keepDv = true; // mode "standard": leave Dolby Vision signalling untouched
   else if (arg === '--ensure-h264') ensureH264 = true;
-  else if (arg === '--grade') colorPreset = String(args[++i] || 'original');
   else positional.push(arg);
 }
 
@@ -233,124 +230,22 @@ function reportProgress(percent, stage) {
   process.stderr.write(`progress ${percent} ${stage}\n`);
 }
 
-async function applyColorGrade(srcPath, dstPath, presetId) {
-  const presetObj = getPresetById(presetId);
-  if (!presetObj || !presetObj.ffmpegFilter) {
-    await copyFile(srcPath, dstPath);
-    return;
-  }
-
-  // Get duration and fps for progress tracking and timing integrity
-  let durationSec = 0;
-  let sourceFps = 60;
-  try {
-    const probe = spawnSync('ffprobe', [
-      '-v', 'error',
-      '-select_streams', 'v:0',
-      '-show_entries', 'stream=r_frame_rate:format=duration',
-      '-of', 'json',
-      srcPath,
-    ], { encoding: 'utf8', timeout: 5000 });
-    if (probe.status === 0 && probe.stdout) {
-      const data = JSON.parse(probe.stdout);
-      durationSec = parseFloat(data.format?.duration || '0') || 0;
-      const fr = data.streams?.[0]?.r_frame_rate;
-      if (fr && fr.includes('/')) {
-        const [n, d] = fr.split('/').map(Number);
-        if (n && d) sourceFps = Math.round(n / d);
-      }
-    }
-  } catch {}
-
-  const targetFps = sourceFps >= 50 ? 60 : 30;
-  // Memory-safe scaling: clamps 4K/UHD down to 1080p (fast_bilinear), keeping aspect ratio and native res if <=1080p
-  const scaleFilter = "scale='if(gte(iw,ih),min(1920,iw),min(1080,iw))':-2:flags=fast_bilinear";
-  const fullVf = [scaleFilter, presetObj.ffmpegFilter].filter(Boolean).join(',');
-
-  const ffArgs = [
-    '-y',
-    // Restrict decoder and filter threading as well as the encoder below.
-    // Output-only -threads 1 does not limit the input decoder or filter graph.
-    '-filter_threads', '1',
-    '-threads:v', '1',
-    '-i', srcPath,
-    '-map', '0:v:0',
-    '-map', '0:a:0?',
-    '-vf', fullVf,
-    '-c:v', 'libx264',
-    '-preset', 'ultrafast',
-    '-crf', '19',
-    '-r', String(targetFps),
-    '-video_track_timescale', '600',
-    '-pix_fmt', 'yuv420p',
-    '-c:a', 'copy',
-    '-threads', '1',
-    '-x264-params', 'no-mbtree=1:rc-lookahead=0:sync-lookahead=0:b-adapt=0:bframes=0:ref=1:aq-mode=0',
-    '-progress', 'pipe:2',
-    dstPath,
-  ];
-
-  return new Promise((resolve, reject) => {
-    const child = spawn('ffmpeg', ffArgs, {
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
-
-    let lastProgressPct = 5;
-    let errOutput = '';
-
-    child.stderr.on('data', (data) => {
-      const text = data.toString();
-      const match = text.match(/out_time_us=(\d+)/);
-      if (match && durationSec > 0) {
-        const currentSec = parseInt(match[1], 10) / 1000000;
-        const pct = Math.min(45, Math.max(5, Math.round(5 + (currentSec / durationSec) * 40)));
-        if (pct > lastProgressPct) {
-          lastProgressPct = pct;
-          reportProgress(pct, 'color-grading');
-        }
-      }
-      errOutput += text;
-      if (errOutput.length > 2000) errOutput = errOutput.slice(-2000);
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`Failed to start ffmpeg color grade: ${err.message}`));
-    });
-
-    child.on('close', (code, signal) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        const reason = signal ? `killed with signal ${signal}` : `exited with code ${code}`;
-        reject(new Error(`ffmpeg color grade ${reason}: ${errOutput.slice(-500).trim()}`));
-      }
-    });
-  });
-}
-
 // ---------------------------------------------------------------------------
-// 1. streamFaststartRemux with the iso signature directly to disk
+// 1. Audio stream normalization & faststart remux directly to disk
 // ---------------------------------------------------------------------------
 
 const inputStat = await stat(inputPath);
 const inputBytes = inputStat.size;
 
 const workDir = await mkdtemp(path.join(tmpdir(), 'vague-rtx-pipeline-'));
-const isGraded = Boolean(colorPreset && colorPreset !== 'original');
 let stage0Path = inputPath;
-
-if (isGraded) {
-  reportProgress(5, 'color-grading');
-  stage0Path = path.join(workDir, 'stage0-graded.mp4');
-  await applyColorGrade(inputPath, stage0Path, colorPreset);
-}
 
 // Probe audio stream count
 const probe = spawnSync('ffprobe', [
   '-v', 'error',
   '-show_entries', 'stream=codec_type',
   '-of', 'json',
-  stage0Path,
+  inputPath,
 ], { encoding: 'utf8' });
 
 let audioStreamsCount = 0;
@@ -363,11 +258,11 @@ if (probe.status === 0 && probe.stdout) {
 
 if (audioStreamsCount === 0) {
   // Silent video: synthesize a silent stereo AAC track without re-encoding video frames
-  reportProgress(isGraded ? 40 : 5, 'adding-audio');
-  const stage0Audio = path.join(workDir, 'stage0-audio.mp4');
+  reportProgress(5, 'adding-audio');
+  stage0Path = path.join(workDir, 'stage0-audio.mp4');
   const res = spawnSync('ffmpeg', [
     '-y',
-    '-i', stage0Path,
+    '-i', inputPath,
     '-f', 'lavfi',
     '-i', 'anullsrc=r=48000:cl=stereo',
     '-map', '0:v:0',
@@ -375,22 +270,26 @@ if (audioStreamsCount === 0) {
     '-c:v', 'copy',
     '-c:a', 'aac',
     '-shortest',
-    stage0Audio,
+    stage0Path,
   ], { encoding: 'utf8' });
-  if (res.status === 0 && existsSync(stage0Audio)) stage0Path = stage0Audio;
+  if (res.status !== 0) {
+    throw new Error(`Failed to synthesize audio for silent video: ${res.stderr || res.stdout}`);
+  }
 } else if (audioStreamsCount > 1) {
   // Multiple audio tracks: isolate primary audio track losslessly
-  reportProgress(isGraded ? 40 : 5, 'normalizing-audio');
-  const stage0Audio = path.join(workDir, 'stage0-audio.mp4');
+  reportProgress(5, 'normalizing-audio');
+  stage0Path = path.join(workDir, 'stage0-audio.mp4');
   const res = spawnSync('ffmpeg', [
     '-y',
-    '-i', stage0Path,
+    '-i', inputPath,
     '-map', '0:v:0',
     '-map', '0:a:0',
     '-c', 'copy',
-    stage0Audio,
+    stage0Path,
   ], { encoding: 'utf8' });
-  if (res.status === 0 && existsSync(stage0Audio)) stage0Path = stage0Audio;
+  if (res.status !== 0) {
+    throw new Error(`Failed to isolate primary audio track: ${res.stderr || res.stdout}`);
+  }
 }
 
 const stage1Path = path.join(workDir, 'stage1.mp4');
@@ -404,7 +303,7 @@ const stage2Path = path.join(workDir, 'stage2.mp4');
 // audio buffer starvation and severe periodic stalls.
 // We interleave audio and video packets (~20ms / 1 frame per chunk) with 100%
 // lossless stream copy, preserving all HDR metadata and Dolby Vision intact.
-reportProgress(isGraded ? 45 : 8, 'interleaving');
+reportProgress(8, 'interleaving');
 let sourceForRemux = stage0Path;
 const stage0Interleaved = path.join(workDir, 'stage0-interleaved.mp4');
 let interleaved = false;
@@ -440,7 +339,7 @@ if (!interleaved) {
   } catch {}
 }
 
-reportProgress(isGraded ? 50 : 15, 'reading');
+reportProgress(15, 'reading');
 const remuxed = await streamFaststartRemux(sourceForRemux, stage1Path, {
   stripDV: !keepDv,
   rebrand: true,
@@ -450,7 +349,7 @@ const remuxed = await streamFaststartRemux(sourceForRemux, stage1Path, {
 
 const dvStripped = remuxed.dvStripped;
 const rebranded = remuxed.rebranded;
-reportProgress(isGraded ? 65 : 35, 'remuxed');
+reportProgress(35, 'remuxed');
 
 // ---------------------------------------------------------------------------
 // 2. Read only the header of stage1.mp4 to derive and apply timing transforms
@@ -673,7 +572,7 @@ await fh1.close();
 // 4. Hand off to the validated second-AAC tool
 // ---------------------------------------------------------------------------
 
-reportProgress(isGraded ? 75 : 55, 'timing');
+reportProgress(55, 'timing');
 
 // Final-sample split (validated tool; rebuilds moov and shifts offsets).
 const splitRun = spawnSync(
@@ -688,7 +587,7 @@ if (splitRun.status !== 0) {
 }
 
 // Audio trim + second AAC track (validated tool).
-reportProgress(isGraded ? 85 : 70, 'split-done');
+reportProgress(70, 'split-done');
 
 const toolArgs = [
   fileURLToPath(SECOND_AAC_TOOL), stage2Path, outputPath,
@@ -720,7 +619,6 @@ const outputBytes = outputStat.size;
 const summary = {
   mode: keepDv ? 'standard' : 'hdr',
   ensureH264,
-  colorPreset,
   inputBytes,
   outputBytes,
   sizeGrowth: outputBytes - inputBytes,

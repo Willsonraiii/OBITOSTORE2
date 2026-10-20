@@ -1063,7 +1063,7 @@ app.get('/api/jobs/:id/download', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no'); // Disable Cloudflare / Nginx proxy buffering
   res.setHeader('Content-Type', 'video/mp4');
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodedName}`);
-  res.setHeader('Cache-Control', 'private, no-transform, no-cache');
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400');
   res.setHeader('ETag', `"${statInfo.size}-${Math.round(statInfo.mtimeMs)}"`);
   res.setHeader('Last-Modified', statInfo.mtime.toUTCString());
 

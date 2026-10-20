@@ -952,7 +952,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
         fileName: name,
         totalBytes: result.bytes || 0,
         headers: headers(),
-        concurrency: 4,
+        concurrency: 6,
         onProgress: ({ percent, speedFormatted }) => {
           setDl({ state: 'loading', pct: percent, speed: speedFormatted });
         },

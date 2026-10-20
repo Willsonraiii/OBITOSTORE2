@@ -1,21 +1,25 @@
 /**
- * High-Speed Parallel Turbo Downloader for Obito Studio
+ * High-Speed Universal Parallel Turbo Downloader for Obito Studio
  *
- * Accelerates downloads across high-latency WAN / mobile connections by splitting
- * the video file into 4 parallel HTTP Range byte slices over HTTP/2.
+ * Accelerates video downloads across high-latency WAN and mobile connections by
+ * splitting the master video into 4 concurrent HTTP Range byte streams over HTTP/2.
  *
- * In supported desktop browsers (Chrome, Edge, Brave), chunks are written directly
- * to disk at their respective byte offsets using the File System Access API
- * (showSaveFilePicker) with ZERO memory consumption.
+ * - Desktop Chromium (Chrome, Edge, Brave):
+ *   Writes directly to disk at precise byte offsets via File System Access API
+ *   (window.showSaveFilePicker) with ZERO memory overhead.
  *
- * In unsupported environments or small files, it uses stream assembly or falls back
- * smoothly to direct browser streaming.
+ * - Mobile / Safari / Firefox / iOS / Android:
+ *   Fetches 4 slices in parallel concurrently, tracks real-time throughput telemetry,
+ *   assembles into a fast Blob, and triggers immediate browser download.
+ *
+ * - Automatic Fallback:
+ *   If cancelled or unsupported, cleanly falls back to standard single-stream download.
  */
 
 export function isTurboDownloadSupported() {
   if (typeof window === 'undefined') return false;
-  // File System Access API for true 0-RAM disk streaming
-  return typeof window.showSaveFilePicker === 'function';
+  // Supported in all modern browsers with Fetch + Blob support
+  return typeof window.fetch === 'function' && typeof window.Blob === 'function';
 }
 
 export function formatDownloadSpeed(bytesPerSec) {
@@ -27,7 +31,7 @@ export function formatDownloadSpeed(bytesPerSec) {
 }
 
 /**
- * Executes a 4-thread parallel chunked download directly to disk.
+ * Executes a 4-thread parallel chunked download with live speed telemetry.
  */
 export async function downloadWithTurbo({
   url,
@@ -39,34 +43,44 @@ export async function downloadWithTurbo({
   signal,
 }) {
   if (!totalBytes || totalBytes <= 0) {
+    try {
+      const headRes = await fetch(url, { method: 'HEAD', headers });
+      const cl = headRes.headers.get('content-length');
+      if (cl && Number(cl) > 0) totalBytes = Number(cl);
+    } catch {}
+  }
+
+  if (!totalBytes || totalBytes <= 0) {
     throw new Error('Total bytes required for parallel slice calculation.');
   }
 
-  // 1. Prompt user for save destination via native file picker
-  let fileHandle = null;
-  try {
-    fileHandle = await window.showSaveFilePicker({
-      suggestedName: fileName,
-      types: [
-        {
-          description: 'Master Video (MP4)',
-          accept: { 'video/mp4': ['.mp4'] },
-        },
-      ],
-    });
-  } catch (err) {
-    // User cancelled file picker
-    if (err.name === 'AbortError') {
-      const abortErr = new Error('Download cancelled by user.');
-      abortErr.isCancelled = true;
-      throw abortErr;
+  const supportsDirectFs = typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+  let writable = null;
+
+  if (supportsDirectFs) {
+    try {
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: 'Master Video (MP4)',
+            accept: { 'video/mp4': ['.mp4'] },
+          },
+        ],
+      });
+      writable = await fileHandle.createWritable({ keepExistingData: false });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        const abortErr = new Error('Download cancelled by user.');
+        abortErr.isCancelled = true;
+        throw abortErr;
+      }
+      // If user denied permission or dialog failed, fall through to universal parallel assembly
+      writable = null;
     }
-    throw err;
   }
 
-  const writable = await fileHandle.createWritable({ keepExistingData: false });
-
-  // 2. Compute range slices
+  // Compute 4 parallel range slices
   const numWorkers = Math.min(concurrency, Math.max(1, Math.floor(totalBytes / (2 * 1024 * 1024))));
   const sliceSize = Math.floor(totalBytes / numWorkers);
   const slices = [];
@@ -109,7 +123,9 @@ export async function downloadWithTurbo({
 
   updateProgress(0);
 
-  // 3. Worker task to stream a byte range slice directly into its file position
+  // Array to hold slice Blobs if not streaming directly to disk
+  const chunkBlobs = writable ? null : new Array(numWorkers);
+
   const fetchAndWriteSlice = async (slice) => {
     const rangeHeader = `bytes=${slice.start}-${slice.end}`;
     const reqHeaders = {
@@ -127,11 +143,20 @@ export async function downloadWithTurbo({
     }
 
     if (!res.body) {
-      throw new Error('ReadableStream not supported by response');
+      const buf = await res.arrayBuffer();
+      if (writable) {
+        await writable.write({ type: 'write', position: slice.start, data: buf });
+      } else {
+        chunkBlobs[slice.id] = new Blob([buf]);
+      }
+      slice.loaded += buf.byteLength;
+      updateProgress(buf.byteLength);
+      return;
     }
 
     const reader = res.body.getReader();
     let currentPosition = slice.start;
+    const parts = writable ? null : [];
 
     while (true) {
       if (signal?.aborted) {
@@ -142,24 +167,44 @@ export async function downloadWithTurbo({
       if (done) break;
 
       const chunkLength = value.byteLength;
-      // Write chunk at exact disk position
-      await writable.write({
-        type: 'write',
-        position: currentPosition,
-        data: value,
-      });
+      if (writable) {
+        await writable.write({
+          type: 'write',
+          position: currentPosition,
+          data: value,
+        });
+      } else {
+        parts.push(value);
+      }
 
       currentPosition += chunkLength;
       slice.loaded += chunkLength;
       updateProgress(chunkLength);
     }
+
+    if (!writable && parts) {
+      chunkBlobs[slice.id] = new Blob(parts);
+    }
   };
 
   try {
-    // Run parallel slice workers concurrently
     await Promise.all(slices.map((slice) => fetchAndWriteSlice(slice)));
-    // Close & flush writable file stream
-    await writable.close();
+
+    if (writable) {
+      await writable.close();
+    } else {
+      const finalBlob = new Blob(chunkBlobs, { type: 'video/mp4' });
+      const blobUrl = URL.createObjectURL(finalBlob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { URL.revokeObjectURL(blobUrl); } catch {}
+        if (a.parentNode) a.parentNode.removeChild(a);
+      }, 60000);
+    }
 
     if (onProgress) {
       onProgress({
@@ -171,9 +216,11 @@ export async function downloadWithTurbo({
       });
     }
   } catch (error) {
-    try {
-      await writable.abort();
-    } catch {}
+    if (writable) {
+      try {
+        await writable.abort();
+      } catch {}
+    }
     throw error;
   }
 }

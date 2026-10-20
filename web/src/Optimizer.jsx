@@ -939,8 +939,8 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     const downloadUrl = withKey('/api/jobs/' + result.id + '/download');
     const name = (file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4';
 
-    // If Turbo download (File System Access API) is not supported or file size unknown, fall back to direct download
-    if (!isTurboDownloadSupported() || !result?.bytes) {
+    // If Turbo download is not supported in environment, fall back to direct download
+    if (!isTurboDownloadSupported()) {
       handleDirectDownload();
       return;
     }
@@ -950,7 +950,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
       await downloadWithTurbo({
         url: downloadUrl,
         fileName: name,
-        totalBytes: result.bytes,
+        totalBytes: result.bytes || 0,
         headers: headers(),
         concurrency: 4,
         onProgress: ({ percent, speedFormatted }) => {

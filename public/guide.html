@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TikTok Creator Upload Guide · Obito Studio</title>
+<meta name="description" content="Masterclass guide on how to upload video to TikTok for maximum high quality: 4K, 60fps, 120fps, and HDR without compression or quality drop. Trusted by creators.">
+<meta name="keywords" content="how to upload video to tiktok for high quality, obito studio, obito, tiktok 60fps, tiktok 120fps, tiktok hdr upload, tiktok high quality upload, tiktok video patch, tiktok optimizer">
+<link rel="canonical" href="https://obitostudio.willsonrai.com.np/guide.html">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=20261020">
+<link rel="shortcut icon" href="/favicon.ico?v=20261020">
+<link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png?v=20261020">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261020">
+<link rel="stylesheet" href="/legal.css">
+<style>
+  .step-badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #38bdf8; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+  .btn-cta { display: inline-block; background: #ffffff; color: #000000; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; margin-top: 24px; }
+  .btn-cta:hover { background: #e2e8f0; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+<a class="brand" href="/"><img src="/icon-192.png" alt="Obito Studio">Obito Studio</a>
+<h1>How to Upload Video to TikTok for High Quality</h1>
+<p class="updated">Creator Masterclass · Obito Studio Video Optimization</p>
+
+<p>This masterclass outlines the exact four-phase workflow required to upload 4K, 60fps, 120fps, and 10-bit HDR videos to TikTok with zero generational quality loss.</p>
+
+<div class="card">
+  <span class="step-badge">Phase 01 · Video Editor Export</span>
+  <h2>Export at Your Preferred Resolution &amp; Bitrate</h2>
+  <p><strong>Supported editors:</strong> DaVinci Resolve, Premiere Pro, CapCut, After Effects, Final Cut Pro.</p>
+  <ul>
+    <li><strong>Recommended Bitrate:</strong> ~30 Mbps (30,000 kbps) for clean master detail. Higher or lower bitrates are 100% accepted by Obito Studio.</li>
+    <li><strong>Frame Rate:</strong> 60 fps or 120 fps native fluidity. TikTok's server heuristics often downsample non-standard container clocks to 30fps unless patched.</li>
+    <li><strong>Color &amp; HDR:</strong> Enable HDR (HLG / Rec.2020) in your editor if you desire punchy dynamic range in the TikTok feed.</li>
+  </ul>
+</div>
+
+<div class="card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.04);">
+  <span class="step-badge" style="color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1);">Phase 02 · Crucial Mobile Rule</span>
+  <h2>Save &amp; Upload From "Files App" (Not Photos/Gallery)</h2>
+  <p>When transferring or selecting your video on iOS or Android, <strong>ALWAYS</strong> pick your video from your mobile Files App (iCloud / Internal Storage) instead of the Photos/Gallery picker.</p>
+  <ul>
+    <li><strong>Why Files App?</strong> Mobile photo galleries silently downsample high-bitrate video, strip 10-bit HDR down to 8-bit SDR, and drop frame rates before web upload.</li>
+    <li><strong>The Rule:</strong> Selecting via "Choose File → Browse / Files" preserves 100% of your master bitrate, frame count, and color gamut.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <span class="step-badge">Phase 03 · Obito Studio Remux</span>
+  <h2>Optimize Container Atoms With Zero Generational Loss</h2>
+  <p>Upload your master export to Obito Studio. The engine performs 100% bit-for-bit stream copy (<code>-c:v copy</code>).</p>
+  <ul>
+    <li><strong>FPS + Quality + HDR:</strong> Translates Apple Dolby Vision Profile 8.4 dynamic RPU into native HLG Rec.2020 while locking 60/120fps.</li>
+    <li><strong>FPS + Quality:</strong> Pure stream copy for standard SDR high-framerate clips.</li>
+    <li><strong>Under the Hood:</strong> Zero pixel re-encoding. Container atom clocks are harmonized to 19200 timescale and dual AAC audio streams are preserved.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <span class="step-badge">Phase 04 · Final Publishing</span>
+  <h2>Upload via TikTok Desktop/Web for Maximum Bitrate</h2>
+  <p>Once your master video has been processed by Obito Studio, publish directly to TikTok.</p>
+  <ul>
+    <li><strong>Direct Public Post:</strong> Publish directly as <strong>Public</strong>. Avoid saving as a "Private Draft" first, which triggers TikTok's aggressive secondary re-compression pass.</li>
+    <li><strong>TikTok Web Uploader:</strong> Using <a href="https://www.tiktok.com/upload" target="_blank" rel="noopener">tiktok.com/upload</a> on your mobile or desktop browser bypasses mobile client-side compression rungs and honors high-framerate container atoms.</li>
+  </ul>
+</div>
+
+<p><a href="/" class="btn-cta">Open Obito Studio Optimizer →</a></p>
+
+<footer>
+  <a href="/">Home</a>
+  <a href="/guide.html">Creator Guide</a>
+  <a href="/inspector.html">Codec Inspector</a>
+  <a href="/specs.html">Engine Specs</a>
+  <a href="/terms.html">Terms</a>
+  <a href="/privacy.html">Privacy</a>
+</footer>
+</main>
+</body>
+</html>

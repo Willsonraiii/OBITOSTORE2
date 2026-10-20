@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engine Architecture &amp; FAQ · Obito Studio</title>
+<meta name="description" content="Technical specifications, timescale harmonization methodology, and operational FAQ for Obito Studio lossless 60fps/120fps video mastering.">
+<meta name="keywords" content="obito studio specs, obito studio architecture, 19200 timescale, stream copy -c copy, tiktok 60fps fix, tiktok 120fps hdr">
+<link rel="canonical" href="https://obitostudio.willsonrai.com.np/specs.html">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=20261020">
+<link rel="shortcut icon" href="/favicon.ico?v=20261020">
+<link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png?v=20261020">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261020">
+<link rel="stylesheet" href="/legal.css">
+<style>
+  .btn-cta { display: inline-block; background: #ffffff; color: #000000; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; margin-top: 24px; }
+  .btn-cta:hover { background: #e2e8f0; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+<a class="brand" href="/"><img src="/icon-192.png" alt="Obito Studio">Obito Studio</a>
+<h1>Engine Architecture &amp; Technical Specifications</h1>
+<p class="updated">Lossless Mastering Pipeline &amp; FAQ · Obito Studio</p>
+
+<p>How Obito Studio preserves full 60fps/120fps motion fluidity, 100% master bitrate, and Apple HDR dynamic range without re-encoding video frames.</p>
+
+<div class="card">
+  <h2>The Four Architectural Pillars</h2>
+  <ul>
+    <li><strong>1. Container Timing Architecture:</strong> Standard transcode engines enforce rigid timing heuristics. When high-frame-rate footage arrives with non-standard container clocks, platform gates downsample playback to 30fps. Obito Studio restructures container atom clocks (19200 timescale harmonization) to ensure seamless 60/120fps recognition.</li>
+    <li><strong>2. Zero Generational Loss (-c copy):</strong> Standard transcoders decompress every frame and re-compress with lossy encoders, degrading textures and edge sharpness. Obito Studio never re-encodes compressed video or audio packets. Only moov/trak headers are modified, preserving 100% master bitrate.</li>
+    <li><strong>3. Apple Dolby Vision Profile 8 Demuxing:</strong> iPhone HDR videos embed Dolby Vision Profile 8.4 dynamic metadata (RPU). TikTok strips unhandled Dolby Vision atoms, causing blown-out SDR playback. Obito Studio translates color primaries to native HLG (arib-std-b67) so peak nits survive.</li>
+    <li><strong>4. Sovereign In-Memory Security:</strong> Temporary container remuxing operates in-memory or on local NVMe. All files are automatically purged immediately after download or within one hour of inactivity.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>Frequently Asked Questions (FAQ)</h2>
+  <h3>Does Obito Studio compress or degrade my video?</h3>
+  <p>Never. Obito Studio executes pure container stream copy (<code>-c copy</code>). Every compressed video frame and audio packet remains bit-for-bit identical to your original export.</p>
+
+  <h3>Why is it called Obito Studio?</h3>
+  <p>Obito Studio is a sovereign video mastering suite designed for mobile and desktop creators worldwide, providing access to lossless video patching and high-framerate TikTok tools.</p>
+
+  <h3>Is Obito Studio free to use?</h3>
+  <p>Yes. Obito Studio is completely free for creators worldwide, including Nepali and global content creators looking to maximize TikTok video quality.</p>
+</div>
+
+<p><a href="/" class="btn-cta">Start Optimizing in Obito Studio →</a></p>
+
+<footer>
+  <a href="/">Home</a>
+  <a href="/guide.html">Creator Guide</a>
+  <a href="/inspector.html">Codec Inspector</a>
+  <a href="/specs.html">Engine Specs</a>
+  <a href="/terms.html">Terms</a>
+  <a href="/privacy.html">Privacy</a>
+</footer>
+</main>
+</body>
+</html>

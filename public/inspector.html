@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TikTok Video Codec &amp; Container Inspector · Obito Studio</title>
+<meta name="description" content="Audit TikTok video container atoms, timescale clocks, real playback frame rate, dynamic range, and audio codecs online. Built by Obito Studio.">
+<meta name="keywords" content="tiktok video inspector, codec audit, obito studio, obito, tiktok 60fps check, tiktok timescale audit, tiktok hdr inspector">
+<link rel="canonical" href="https://obitostudio.willsonrai.com.np/inspector.html">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=20261020">
+<link rel="shortcut icon" href="/favicon.ico?v=20261020">
+<link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png?v=20261020">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261020">
+<link rel="stylesheet" href="/legal.css">
+<style>
+  .btn-cta { display: inline-block; background: #ffffff; color: #000000; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; margin-top: 24px; }
+  .btn-cta:hover { background: #e2e8f0; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+<a class="brand" href="/"><img src="/icon-192.png" alt="Obito Studio">Obito Studio</a>
+<h1>TikTok Video Codec &amp; Container Inspector</h1>
+<p class="updated">Container Diagnostics &amp; Audit Suite</p>
+
+<p>The Obito Studio Codec Inspector allows creators to inspect any public TikTok link or local video container before and after uploading to verify whether high-framerate 60fps/120fps motion fluidity and HDR color gamut survive.</p>
+
+<div class="card">
+  <h2>What the Inspector Audits</h2>
+  <table>
+    <tr><th>Metric</th><th>Why It Matters for TikTok</th></tr>
+    <tr><td><strong>Resolution</strong></td><td>Verifies display dimensions (e.g. 1080×1920 or 2160×3840 9:16 portrait).</td></tr>
+    <tr><td><strong>Real Frame Rate</strong></td><td>Reveals whether TikTok served true 60fps playback or silently downsampled to 30fps.</td></tr>
+    <tr><td><strong>Timescale Clock</strong></td><td>Checks whether the container atom clock uses 19200 Hz harmonization to prevent playback stutter.</td></tr>
+    <tr><td><strong>Dynamic Range &amp; HDR</strong></td><td>Identifies SDR vs. HLG (arib-std-b67) vs. PQ (smpte2084).</td></tr>
+    <tr><td><strong>Apple Dolby Vision</strong></td><td>Detects Dolby Vision Profile 8 dynamic metadata and confirms proper translation to HLG.</td></tr>
+    <tr><td><strong>Audio Channels</strong></td><td>Audits primary and secondary AAC tracks to ensure audio fidelity and sync remain intact.</td></tr>
+    <tr><td><strong>Container Atoms</strong></td><td>Verifies <code>ftyp</code>, <code>moov</code>, <code>mvhd</code>, and <code>mdat</code> structures for web streaming compliance.</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Zero Cloud Memory Spikes</h2>
+  <p>When inspecting remote TikTok URLs, Obito Studio performs precision HTTP Range probes (<code>bytes=0-1572863</code>). The engine never downloads entire videos into memory; only container header atoms are inspected in real time.</p>
+</div>
+
+<p><a href="/" class="btn-cta">Launch Obito Studio Live Inspector →</a></p>
+
+<footer>
+  <a href="/">Home</a>
+  <a href="/guide.html">Creator Guide</a>
+  <a href="/inspector.html">Codec Inspector</a>
+  <a href="/specs.html">Engine Specs</a>
+  <a href="/terms.html">Terms</a>
+  <a href="/privacy.html">Privacy</a>
+</footer>
+</main>
+</body>
+</html>

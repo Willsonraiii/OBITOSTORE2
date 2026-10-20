@@ -7,6 +7,7 @@ import {
   PauseIcon, PlayIcon, UploadIcon, RefreshIcon, ShareIcon, SparkIcon
 } from './icons.jsx';
 import { probeLocalFile } from './localProbe.js';
+import { downloadWithTurbo, isTurboDownloadSupported } from './lib/turbo-downloader.js';
 import { LiquidButton } from '@/components/ui/liquid-glass-button';
 
 class MetalErrorBoundary extends Component {
@@ -362,7 +363,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
   const [needKey, setNeedKey] = useState(false);
   const [drag, setDrag] = useState(false);
   const [kept, setKept] = useState(null);
-  const [dl, setDl] = useState({ state: 'idle', pct: 0 });
+  const [dl, setDl] = useState({ state: 'idle', pct: 0, speed: '' });
   const [ttOpen, setTtOpen] = useState(false);          // Post to TikTok sheet
   const [ttCfg, setTtCfg] = useState({ enabled: false }); // GET /api/tiktok/config
   const input = useRef(null);
@@ -933,6 +934,42 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
     }, 1000);
   };
 
+  const handleTurboDownload = async () => {
+    if (!result?.id) return;
+    const downloadUrl = withKey('/api/jobs/' + result.id + '/download');
+    const name = (file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4';
+
+    // If Turbo download (File System Access API) is not supported or file size unknown, fall back to direct download
+    if (!isTurboDownloadSupported() || !result?.bytes) {
+      handleDirectDownload();
+      return;
+    }
+
+    try {
+      setDl({ state: 'loading', pct: 0, speed: 'Connecting...' });
+      await downloadWithTurbo({
+        url: downloadUrl,
+        fileName: name,
+        totalBytes: result.bytes,
+        headers: headers(),
+        concurrency: 4,
+        onProgress: ({ percent, speedFormatted }) => {
+          setDl({ state: 'loading', pct: percent, speed: speedFormatted });
+        },
+      });
+      setDl({ state: 'done', pct: 100, speed: '' });
+      setTimeout(() => setDl({ state: 'idle', pct: 0, speed: '' }), 2500);
+    } catch (err) {
+      if (err.isCancelled) {
+        setDl({ state: 'idle', pct: 0, speed: '' });
+        return;
+      }
+      console.warn('Turbo download fallback to direct stream:', err);
+      handleDirectDownload();
+      setDl({ state: 'idle', pct: 0, speed: '' });
+    }
+  };
+
   const saveFile = async () => {
     if (!result?.id) return;
     const name = (file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-lossless.mp4';
@@ -1200,17 +1237,59 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
 
           {phase === 'done' && result && (
             <>
+              {dl.state === 'loading' && (
+                <div style={{ width: '100%', maxWidth: 440, margin: '0 auto 16px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(56,189,248,0.25)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#38bdf8', fontWeight: 800 }}>⚡ Turbo 4-Thread</span>
+                      <span>·</span>
+                      <span style={{ color: '#ffffff' }}>{dl.speed || 'Transferring...'}</span>
+                    </span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#38bdf8' }}>{dl.pct}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${dl.pct}%`, height: '100%', background: '#38bdf8', transition: 'width 0.2s linear' }} />
+                  </div>
+                </div>
+              )}
+
               <div className="done-buttons flex flex-wrap items-center justify-center gap-3">
-                <a
-                  href={withKey('/api/jobs/' + result.id + '/download')}
-                  download={(file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4'}
-                  target={isStandalone() ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  className="btn-download-master"
-                >
-                  <DownloadIcon width={20} height={20} />
-                  <span>Download Master Video</span>
-                </a>
+                {isTurboDownloadSupported() ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleTurboDownload}
+                      disabled={dl.state === 'loading'}
+                      className="btn-download-master"
+                      title="Accelerated 4x parallel chunk download directly to disk"
+                    >
+                      <DownloadIcon width={20} height={20} />
+                      <span>{dl.state === 'loading' ? `Downloading ${dl.pct}%` : 'Download Master (Turbo ⚡)'}</span>
+                    </button>
+                    <a
+                      href={withKey('/api/jobs/' + result.id + '/download')}
+                      download={(file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4'}
+                      target={isStandalone() ? '_blank' : undefined}
+                      rel="noopener noreferrer"
+                      className="btn-secondary"
+                      title="Standard direct browser download"
+                    >
+                      <DownloadIcon width={16} height={16} />
+                      <span>Direct Download</span>
+                    </a>
+                  </>
+                ) : (
+                  <a
+                    href={withKey('/api/jobs/' + result.id + '/download')}
+                    download={(file?.name ? file.name.replace(/\.[^.]+$/, '') : 'tiktok-optimized') + '-obito-' + mode + '.mp4'}
+                    target={isStandalone() ? '_blank' : undefined}
+                    rel="noopener noreferrer"
+                    className="btn-download-master"
+                  >
+                    <DownloadIcon width={20} height={20} />
+                    <span>Download Master Video</span>
+                  </a>
+                )}
 
                 {typeof navigator !== 'undefined' && navigator.canShare && (
                   <button

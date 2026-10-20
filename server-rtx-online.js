@@ -1048,9 +1048,10 @@ app.get('/api/jobs/:id/download', async (req, res) => {
   const statInfo = await stat(job.outputPath).catch(() => null);
   if (!statInfo || !statInfo.size) return res.status(404).json({ error: 'Output video not found on server.' });
 
-  // Disable socket timeouts & enable TCP no-delay for immediate packet forwarding
+  // Disable socket timeouts, enable TCP keep-alive & no-delay for immediate packet forwarding
   req.socket?.setTimeout(0);
   req.socket?.setNoDelay(true);
+  req.socket?.setKeepAlive?.(true, 10000);
   res.setTimeout?.(0);
 
   const baseName = (job.fileName || 'video').replace(/\.[^.]+$/, '');
@@ -1062,7 +1063,9 @@ app.get('/api/jobs/:id/download', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no'); // Disable Cloudflare / Nginx proxy buffering
   res.setHeader('Content-Type', 'video/mp4');
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodedName}`);
-  res.setHeader('Cache-Control', 'public, max-age=14400, stale-while-revalidate=86400');
+  res.setHeader('Cache-Control', 'private, no-transform, no-cache');
+  res.setHeader('ETag', `"${statInfo.size}-${Math.round(statInfo.mtimeMs)}"`);
+  res.setHeader('Last-Modified', statInfo.mtime.toUTCString());
 
   const range = req.headers.range;
   if (range) {
@@ -1081,15 +1084,23 @@ app.get('/api/jobs/:id/download', async (req, res) => {
     res.setHeader('Content-Range', `bytes ${start}-${end}/${statInfo.size}`);
     res.setHeader('Content-Length', chunksize);
 
-    const stream = createReadStream(job.outputPath, { start, end, highWaterMark: 1024 * 1024 });
+    // Flush headers immediately so edge proxies and clients start receiving data without waiting
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    // High throughput 2 MB buffer stream from NVMe storage
+    const stream = createReadStream(job.outputPath, { start, end, highWaterMark: 2 * 1024 * 1024 });
     stream.pipe(res);
     stream.on('error', (err) => {
       if (!res.headersSent) res.status(500).end();
     });
   } else {
-    // Full streaming with 1 MB chunk buffer to maximize pipe saturation
+    // Full streaming with 2 MB chunk buffer to maximize pipe saturation
     res.setHeader('Content-Length', statInfo.size);
-    const stream = createReadStream(job.outputPath, { highWaterMark: 1024 * 1024 });
+
+    // Flush headers immediately
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    const stream = createReadStream(job.outputPath, { highWaterMark: 2 * 1024 * 1024 });
     stream.pipe(res);
     stream.on('error', (err) => {
       if (!res.headersSent) res.status(500).end();

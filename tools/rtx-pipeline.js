@@ -26,6 +26,7 @@
  *     [--audio-elst-ms N] [--filler-count N] [--keep-temp]
  */
 import { readFile, writeFile, mkdtemp, rm, stat, open, copyFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { spawnSync, spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -324,7 +325,9 @@ try {
     sourceForRemux = stage0Interleaved;
     interleaved = true;
   }
-} catch {}
+} catch (e) {
+  warnings.push(`ffmpeg interleave exception: ${e.message}`);
+}
 
 if (!interleaved) {
   try {
@@ -336,7 +339,9 @@ if (!interleaved) {
       sourceForRemux = stage0Interleaved;
       interleaved = true;
     }
-  } catch {}
+  } catch (e) {
+    warnings.push(`mp4box interleave exception: ${e.message}`);
+  }
 }
 
 reportProgress(15, 'reading');

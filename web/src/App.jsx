@@ -5,12 +5,12 @@ import { ThinkingOrb } from 'thinking-orbs';
 import Inspector from './Inspector.jsx';
 import Dashboard from './Dashboard.jsx';
 import AdminPassesModal from './AdminPassesModal.jsx';
+import { ShaderAnimation } from '@/components/ui/shader-animation';
 import Guide from './Guide.jsx';
 import {
   ChevronIcon, FpsIcon, HdrIcon, HelpIcon,
   InspectIcon, LayersIcon, LightningIcon, ShieldIcon, SparkIcon, FilmIcon,
-  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon, BookOpenIcon, DashboardIcon,
-  MenuIcon, CloseIcon
+  PremiumKeyIcon, UserIcon, LogoutIcon, ChevronDownIcon, BookOpenIcon, DashboardIcon
 } from './icons.jsx';
 import { ShutterText } from '@/components/ui/hero-shutter-text.jsx';
 import { AnimatedText } from '@/components/ui/animated-text.jsx';
@@ -19,11 +19,11 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
 
 const TABS = [
-  { id: 'optimizer', label: 'Optimizer', desc: 'Lossless 60/120fps & HDR Video Mastering', Icon: LightningIcon },
-  { id: 'dashboard', label: 'Dashboard', desc: 'Connected Accounts & Pipeline Stats', Icon: DashboardIcon },
-  { id: 'inspect', label: 'Inspector', desc: 'TikTok Link & Local Container Probe', Icon: InspectIcon },
-  { id: 'guide', label: 'Guide', desc: 'Creator Studio Export Presets', Icon: BookOpenIcon },
-  { id: 'specs', label: 'Specs & FAQ', desc: 'Container Architecture & FAQ', Icon: LayersIcon },
+  { id: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
+  { id: 'guide', label: 'Guide', Icon: BookOpenIcon },
+  { id: 'optimizer', label: 'Optimizer', Icon: LightningIcon },
+  { id: 'inspect', label: 'Inspector', Icon: InspectIcon },
+  { id: 'specs', label: 'Specs & FAQ', Icon: LayersIcon },
 ];
 
 /* ---------- Technical Architecture Content ---------- */
@@ -287,22 +287,36 @@ export default function App() {
     setTilt({ x: 0, y: 0 });
   };
 
-  // Studio Navigation Menu state (top-right drawer)
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Ref to the dock container and active pill slider
+  const dockBarRef = useRef(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, ready: false });
+  const [dragOffset, setDragOffset] = useState(0);
+
+  // Measure and align sliding glass pill indicator
+  const [hoveredTab, setHoveredTab] = useState(null);
+
+  // Measure and align sliding glass pill indicator
+  const updatePill = useCallback(() => {
+    if (!dockBarRef.current) return;
+    const targetTab = hoveredTab || activeTab;
+    const activeBtn = dockBarRef.current.querySelector(`.ios-dock-item[data-tab-id="${targetTab}"]`);
+    if (activeBtn) {
+      setIndicatorStyle({
+        left: activeBtn.offsetLeft,
+        width: activeBtn.offsetWidth,
+        ready: true,
+        dragging: !!hoveredTab
+      });
+    }
+  }, [activeTab, hoveredTab]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setMenuOpen(false);
-        setShowMemberModal(false);
-        setShowAdminModal(false);
-        setShowKeyModal(false);
-        setShowUserMenu(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
+  }, [updatePill]);
+
+  const suppressClickRef = useRef(false);
 
   const switchTabWithHaptic = useCallback((tabId) => {
     setActiveTab((prev) => {
@@ -314,11 +328,64 @@ export default function App() {
     });
   }, []);
 
+  const onDockTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      const t = e.touches[0];
+      if (dockBarRef.current) {
+        const rect = dockBarRef.current.getBoundingClientRect();
+        const clientX = t.clientX;
+        const relativeX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+        setDragOffset(relativeX);
+
+        // Map touch position directly to tab index across all tabs
+        const tabWidth = rect.width / TABS.length;
+        const tabIdx = Math.max(0, Math.min(Math.floor(relativeX / tabWidth), TABS.length - 1));
+        const targetTab = TABS[tabIdx]?.id;
+        if (targetTab) {
+          setHoveredTab(targetTab);
+        }
+      }
+    }
+  };
+
+  const onDockTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    if (e.cancelable) e.preventDefault();
+    const t = e.touches[0];
+    if (dockBarRef.current) {
+      const rect = dockBarRef.current.getBoundingClientRect();
+      const clientX = t.clientX;
+      const relativeX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      setDragOffset(relativeX);
+
+      // Freely track which tab the finger is over along the entire width (1st to 6th)
+      const tabWidth = rect.width / TABS.length;
+      const tabIdx = Math.max(0, Math.min(Math.floor(relativeX / tabWidth), TABS.length - 1));
+      const targetTab = TABS[tabIdx]?.id;
+      if (targetTab && targetTab !== hoveredTab) {
+        setHoveredTab(targetTab);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) try { navigator.vibrate(8); } catch {}
+      }
+    }
+  };
+
+  const onDockTouchEnd = (e) => {
+    // Commit the hovered tab directly when releasing anywhere on the dock bar
+    if (hoveredTab) {
+      switchTabWithHaptic(hoveredTab);
+      suppressClickRef.current = true;
+      setTimeout(() => suppressClickRef.current = false, 300);
+    }
+    setHoveredTab(null);
+    setDragOffset(0);
+  };
+
   const dayStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div className="studio-app relative">
+      <ShaderAnimation />
       {/* ---------- Ultra-Premium Studio Top Bar with Frameless Living Logo ---------- */}
       <header
         className="studio-topbar"
@@ -368,46 +435,28 @@ export default function App() {
           <span className="brand-beta-tag">BETA</span>
         </div>
 
-        {/* Center Segment: Frameless 3D Living Monogram */}
-        <div className="topbar-center">
-          <button
-            type="button"
-            className="topbar-logo-btn"
-            style={{
-              transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
-            }}
-            onClick={() => {
-              setActiveTab('dashboard');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            aria-label="OBITO STUDIO"
-          >
-            <Logo size={42} />
-          </button>
+        {/* Center Segment: Frameless 3D Living Monogram (Centered when signed in) */}
+        <div className={`topbar-center ${!ownerAuthenticated ? 'is-empty' : ''}`}>
+          {ownerAuthenticated && (
+            <button
+              type="button"
+              className="topbar-logo-btn"
+              style={{
+                transform: `perspective(360px) rotateY(${tilt.x * 14}deg) rotateX(${-tilt.y * 12}deg)`
+              }}
+              onClick={() => {
+                setActiveTab('dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              aria-label="OBITO STUDIO"
+            >
+              <Logo size={42} />
+            </button>
+          )}
         </div>
 
-        {/* Right Segment: Clock, Menu, and Sign in / Account */}
+        {/* Right Segment: Access Key & Clock (or Logo at right when logged out) */}
         <div className="topbar-right">
-          <div className="studio-clock" aria-label="Local Time">
-            <span className="clock-day">{dayStr}</span>
-            <span className="clock-time">{timeStr}</span>
-          </div>
-
-          {/* Top-Right Studio Menu Button (Icon Only) */}
-          <button
-            type="button"
-            className={`studio-menu-btn ${menuOpen ? 'active' : ''}`}
-            onClick={() => setMenuOpen((v) => !v)}
-            title={menuOpen ? 'Close Navigation' : 'Studio Navigation'}
-            aria-label={menuOpen ? 'Close Navigation' : 'Studio Navigation'}
-            aria-expanded={menuOpen}
-          >
-            <div className="menu-btn-icon-box">
-              {menuOpen ? <CloseIcon width={16} height={16} /> : <MenuIcon width={16} height={16} />}
-            </div>
-            {busy && <span className="menu-live-dot" title="Job in progress" />}
-          </button>
-
           {memberPreview && ownerAuthenticated ? (
             <div className="topbar-user-menu-wrap">
               <button
@@ -478,18 +527,21 @@ export default function App() {
             </button>
           )}
 
-          {!memberPreview && (
-            <button
-              type="button"
-              className={`key-badge-btn ${apiKey ? 'configured' : ''}`}
-              onClick={() => setShowKeyModal((v) => !v)}
-              title="Configure Server Access Key"
-              aria-label="Server Access Key"
-            >
-              <PremiumKeyIcon width={15} height={15} />
-              <span className="key-btn-text">{apiKey ? 'Key Set' : 'Key'}</span>
-            </button>
-          )}
+          {!memberPreview && <button
+            type="button"
+            className={`key-badge-btn ${apiKey ? 'configured' : ''}`}
+            onClick={() => setShowKeyModal((v) => !v)}
+            title="Configure Server Access Key"
+            aria-label="Server Access Key"
+          >
+            <PremiumKeyIcon width={15} height={15} />
+            <span className="key-btn-text">{apiKey ? 'Key Set' : 'Key'}</span>
+          </button>}
+
+          <div className="studio-clock" aria-label="Local Time">
+            <span className="clock-day">{dayStr}</span>
+            <span className="clock-time">{timeStr}</span>
+          </div>
         </div>
       </header>
 
@@ -521,160 +573,6 @@ export default function App() {
               <button type="button" className="btn-studio primary" onClick={() => setShowKeyModal(false)}>
                 Save Token
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Member Sign-In & Referral Modal (Overlay across all pages) */}
-      {showMemberModal && (
-        <div
-          className="modal-backdrop"
-          onClick={() => {
-            setShowMemberModal(false);
-            setDemoCode('');
-            setLoginError('');
-            setMemberModalMode('login');
-          }}
-          style={{ zIndex: 1100 }}
-        >
-          <div
-            className="member-floating-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Studio Member Access"
-          >
-            <button
-              type="button"
-              className="modal-close member-modal-close"
-              onClick={() => {
-                setShowMemberModal(false);
-                setDemoCode('');
-                setLoginError('');
-                setMemberModalMode('login');
-              }}
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            <div className="clean-dropzone phase-idle member-floating-dropzone">
-              {memberModalMode === 'referral' ? (
-                <>
-                  <div className="member-orb" aria-label="Redeeming referral pass">
-                    <ThinkingOrb state={redeemingRef ? 'working' : 'searching'} size={64} theme="dark" />
-                  </div>
-                  <div className="dropzone-text">
-                    <h2 className="dropzone-title">Redeem Referral Code</h2>
-                    <p className="dropzone-sub">Enter the invite or referral code you received.</p>
-                  </div>
-                  <form className="member-inline-form" onSubmit={redeemReferral}>
-                    <label htmlFor="ref-code">Referral / Invite Code</label>
-                    <input
-                      id="ref-code"
-                      className="studio-input"
-                      placeholder="e.g. OBITO-VIP or VIP-CODE"
-                      value={referralCodeInput}
-                      onChange={(e) => { setReferralCodeInput(e.target.value); setReferralError(''); }}
-                      required
-                      autoFocus
-                    />
-                    <label htmlFor="ref-name">Your Name / Handle (Optional)</label>
-                    <input
-                      id="ref-name"
-                      className="studio-input"
-                      placeholder="e.g. Alex"
-                      value={referralNameInput}
-                      onChange={(e) => setReferralNameInput(e.target.value)}
-                    />
-                    <div className="member-inline-actions">
-                      <button type="submit" className="btn-primary-hero choose-file-label" disabled={redeemingRef}>
-                        {redeemingRef ? 'Activating…' : 'Redeem Pass →'}
-                      </button>
-                      <button type="button" className="btn-secondary" onClick={() => { setMemberModalMode('login'); setReferralError(''); }}>
-                        Back
-                      </button>
-                    </div>
-                    {referralError && <p className="member-login-error" role="alert">{referralError}</p>}
-                  </form>
-                </>
-              ) : memberModalMode === 'referral_success' && referralRedeemedCreds ? (
-                <>
-                  <div className="member-orb">
-                    <ThinkingOrb state="solving" size={64} theme="dark" />
-                  </div>
-                  <div className="dropzone-text">
-                    <h2 className="dropzone-title">🎉 Access Pass Activated!</h2>
-                    <p className="dropzone-sub">Your personal client credentials have been created.</p>
-                  </div>
-                  <div className="member-success-card">
-                    <div className="success-cred-row">
-                      <span className="cred-label">Client ID:</span>
-                      <span className="cred-val">{referralRedeemedCreds.clientId}</span>
-                    </div>
-                    <div className="success-cred-row">
-                      <span className="cred-label">Access Code:</span>
-                      <span className="cred-val code-highlight">{referralRedeemedCreds.accessCode}</span>
-                    </div>
-                    <p className="success-save-hint">Save these credentials or click below to enter directly.</p>
-                  </div>
-                  <div className="member-inline-actions">
-                    <button
-                      type="button"
-                      className="btn-primary-hero choose-file-label"
-                      onClick={() => {
-                        const displayName = referralRedeemedCreds.name || referralRedeemedCreds.clientId;
-                        onKeyChange(referralRedeemedCreds.accessCode, displayName);
-                        setOwnerAuthenticated(true);
-                        setShowMemberModal(false);
-                        setMemberModalMode('login');
-                        setReferralRedeemedCreds(null);
-                      }}
-                    >
-                      Enter Studio & Save Pass →
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="member-orb" aria-label={`Sign-in progress: ${memberOrbState}`}>
-                    <ThinkingOrb state={memberOrbState} size={64} theme="dark" />
-                  </div>
-                  <div className="dropzone-text">
-                    <h2 className="dropzone-title">Sign in to optimize</h2>
-                    <p className="dropzone-sub">Enter your personal Client ID & Access code.</p>
-                  </div>
-                  <form className="member-inline-form" onSubmit={signInOwner}>
-                    <label htmlFor="member-id">Client ID <span style={{ opacity: 0.6, fontWeight: 'normal', fontSize: '11px' }}>(Optional for Owner)</span></label>
-                    <input id="member-id" className="studio-input" placeholder="e.g. owner or user_xxxxx" autoComplete="off" value={demoClientId} onFocus={() => setFocusedMemberField('id')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoClientId(e.target.value); }} />
-                    <label htmlFor="member-code">Access code</label>
-                    <input id="member-code" className="studio-input" placeholder="Your access code or server token" type="password" autoComplete="off" value={demoCode} onFocus={() => setFocusedMemberField('code')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoCode(e.target.value); }} required />
-                    <div className="member-inline-actions">
-                      <button type="submit" className="btn-primary-hero choose-file-label">Continue</button>
-                      <button type="button" className="btn-secondary" onClick={() => { setShowMemberModal(false); setDemoCode(''); }}>Cancel</button>
-                    </div>
-                    <div className="member-request">
-                      <div className="referral-prompt-row">
-                        <span>Have a referral or invite code?</span>
-                        <button type="button" className="member-link-btn" onClick={() => { setMemberModalMode('referral'); setReferralError(''); }}>Redeem referral code →</button>
-                      </div>
-                      <div className="whatsapp-prompt-row">
-                        <span>Don’t have an access code?</span>
-                        <a
-                          href="https://wa.me/9779813952103?text=Hi%2C%20I%20would%20like%20to%20request%20an%20access%20code%20for%20Obito%20Studio."
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-secondary"
-                        >
-                          Request access code →
-                        </a>
-                      </div>
-                    </div>
-                    {loginError && <p className="member-login-error" role="alert">{loginError}</p>}
-                  </form>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -754,34 +652,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ---------- Studio Command Subnav (Pro Segmented Deck) ---------- */}
-      <nav className="studio-deck-nav" aria-label="Mastering Workspaces">
-        <div className="studio-deck-nav-inner">
-          <div className="studio-deck-tabs-scroller">
-            {TABS.map(({ id, label, Icon }) => {
-              const active = activeTab === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className={`studio-deck-tab ${active ? 'active' : ''}`}
-                  onClick={() => switchTabWithHaptic(id)}
-                  title={label}
-                >
-                  <Icon width={14} height={14} className="deck-tab-icon" />
-                  <span className="deck-tab-label">{label}</span>
-                  {id === 'optimizer' && busy && <span className="deck-tab-busy-pulse" title="Engine actively remuxing" />}
-                </button>
-              );
-            })}
-          </div>
-          <div className="studio-deck-telemetry" aria-hidden="true">
-            <span className="telemetry-live-dot" />
-            <span className="telemetry-text">19200 TIMING · ZERO LOSS</span>
-          </div>
-        </div>
-      </nav>
-
       {/* ---------- Main Workspace Viewport ---------- */}
       <main className={`studio-workspace ${activeTab === 'optimizer' ? 'tab-optimizer' : ''} ${activeTab === 'optimizer' && !ownerAuthenticated ? 'optimizer-locked-viewport' : ''}`}>
         <section
@@ -793,7 +663,7 @@ export default function App() {
         </section>
 
         <section
-          className={`workspace-view optimizer-view ${activeTab === 'optimizer' ? 'active' : ''} ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? 'member-locked-view' : ''}`}
+          className={`workspace-view optimizer-view ${activeTab === 'optimizer' ? 'active' : ''} ${busy ? 'is-busy' : ''} ${memberPreview && !ownerAuthenticated ? (showMemberModal ? 'member-signin-view' : 'member-locked-view') : ''}`}
           style={{ display: activeTab === 'optimizer' ? 'flex' : 'none' }}
           key="optimizer"
         >
@@ -824,83 +694,126 @@ export default function App() {
             ) : memberPreview && !ownerAuthenticated ? (
               <div className="studio-optimizer w-full max-w-3xl mx-auto">
                 <div className="clean-dropzone phase-idle">
-                  {/* Precision Console Corner Reticles */}
-                  <span className="console-reticle corner-tl" aria-hidden="true" />
-                  <span className="console-reticle corner-tr" aria-hidden="true" />
-                  <span className="console-reticle corner-bl" aria-hidden="true" />
-                  <span className="console-reticle corner-br" aria-hidden="true" />
-
-                  {/* Hardware Telemetry Strip */}
-                  <div className="console-telemetry-strip" aria-hidden="true">
-                    <div className="telemetry-node">
-                      <span className="telemetry-node-dot" />
-                      <span>STREAM SURGERY</span>
+                  {!showMemberModal ? <>
+                    <BotStage phase="idle" busy={false} />
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">Choose a video to optimize</h2>
+                      <p className="dropzone-sub">Sign in with an active membership to upload a video.</p>
                     </div>
-                    <div className="telemetry-node">
-                      <span>19200 TIMING CLOCK</span>
+                    <div className="idle-actions">
+                      <div className="choose-btn-wrap my-3">
+                        <button type="button" className="btn-primary-hero choose-file-label" onClick={() => setShowMemberModal(true)}><PremiumKeyIcon width={18} height={18} /><span>Sign in to optimize</span></button>
+                      </div>
                     </div>
-                    <div className="telemetry-node">
-                      <span>DUAL AAC PASS-THROUGH</span>
+                  </> : memberModalMode === 'referral' ? <>
+                    <div className="member-orb" aria-label="Redeeming referral pass">
+                      <ThinkingOrb state={redeemingRef ? 'working' : 'searching'} size={64} theme="dark" />
                     </div>
-                  </div>
-
-                  <BotStage phase="idle" busy={false} />
-
-                  <div className="dropzone-text">
-                    <h2 className="dropzone-title">Lossless Mastering Aperture</h2>
-                    <p className="dropzone-sub">Sign in with an active pass to engage bit-for-bit container remuxing.</p>
-                  </div>
-
-                  <div className="console-format-pills" aria-label="Supported master specifications">
-                    <span className="format-pill">MP4 / MOV</span>
-                    <span className="format-pill">60 / 120 FPS</span>
-                    <span className="format-pill">HEVC / PRORES</span>
-                    <span className="format-pill">10-BIT HLG</span>
-                    <span className="format-pill">MAX 600 MB</span>
-                  </div>
-
-                  <div className="idle-actions">
-                    <div className="choose-btn-wrap my-3">
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">Redeem Referral Code</h2>
+                      <p className="dropzone-sub">Enter the invite or referral code you received.</p>
+                    </div>
+                    <form className="member-inline-form" onSubmit={redeemReferral}>
+                      <label htmlFor="ref-code">Referral / Invite Code</label>
+                      <input
+                        id="ref-code"
+                        className="studio-input"
+                        placeholder="e.g. OBITO-VIP or VIP-CODE"
+                        value={referralCodeInput}
+                        onChange={(e) => { setReferralCodeInput(e.target.value); setReferralError(''); }}
+                        required
+                        autoFocus
+                      />
+                      <label htmlFor="ref-name">Your Name / Handle (Optional)</label>
+                      <input
+                        id="ref-name"
+                        className="studio-input"
+                        placeholder="e.g. Alex"
+                        value={referralNameInput}
+                        onChange={(e) => setReferralNameInput(e.target.value)}
+                      />
+                      <div className="member-inline-actions">
+                        <button type="submit" className="btn-primary-hero choose-file-label" disabled={redeemingRef}>
+                          {redeemingRef ? 'Activating…' : 'Redeem Pass →'}
+                        </button>
+                        <button type="button" className="btn-secondary" onClick={() => { setMemberModalMode('login'); setReferralError(''); }}>
+                          Back
+                        </button>
+                      </div>
+                      {referralError && <p className="member-login-error" role="alert">{referralError}</p>}
+                    </form>
+                  </> : memberModalMode === 'referral_success' && referralRedeemedCreds ? <>
+                    <div className="member-orb">
+                      <ThinkingOrb state="solving" size={64} theme="dark" />
+                    </div>
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">🎉 Access Pass Activated!</h2>
+                      <p className="dropzone-sub">Your personal client credentials have been created.</p>
+                    </div>
+                    <div className="member-success-card">
+                      <div className="success-cred-row">
+                        <span className="cred-label">Client ID:</span>
+                        <span className="cred-val">{referralRedeemedCreds.clientId}</span>
+                      </div>
+                      <div className="success-cred-row">
+                        <span className="cred-label">Access Code:</span>
+                        <span className="cred-val code-highlight">{referralRedeemedCreds.accessCode}</span>
+                      </div>
+                      <p className="success-save-hint">Save these credentials or click below to enter directly.</p>
+                    </div>
+                    <div className="member-inline-actions">
                       <button
                         type="button"
                         className="btn-primary-hero choose-file-label"
                         onClick={() => {
+                          const displayName = referralRedeemedCreds.name || referralRedeemedCreds.clientId;
+                          onKeyChange(referralRedeemedCreds.accessCode, displayName);
+                          setOwnerAuthenticated(true);
+                          setShowMemberModal(false);
                           setMemberModalMode('login');
-                          setShowMemberModal(true);
+                          setReferralRedeemedCreds(null);
                         }}
                       >
-                        <PremiumKeyIcon width={18} height={18} />
-                        <span>Sign in to optimize</span>
+                        Enter Studio & Save Pass →
                       </button>
                     </div>
-
-                    <div className="engine-trust-row">
-                      <div className="trust-item">
-                        <span className="trust-val">60 / 120fps</span>
-                        <span className="trust-lbl">Native Fluidity</span>
-                      </div>
-                      <div className="trust-divider" />
-                      <div className="trust-item">
-                        <span className="trust-val">100% Lossless</span>
-                        <span className="trust-lbl">Stream Copy</span>
-                      </div>
-                      <div className="trust-divider" />
-                      <div className="trust-item">
-                        <span className="trust-val">HDR &amp; Dolby</span>
-                        <span className="trust-lbl">Original Gamut</span>
-                      </div>
+                  </> : <>
+                    <div className="member-orb" aria-label={`Sign-in progress: ${memberOrbState}`}>
+                      <ThinkingOrb state={memberOrbState} size={64} theme="dark" />
                     </div>
-
-                    <div className="tiktok-tip-card">
-                      <span className="tiktok-tip-icon" aria-hidden="true">💡</span>
-                      <div className="tiktok-tip-content">
-                        <span className="tiktok-tip-title">Creator Upload Guidance for Max Quality</span>
-                        <span className="tiktok-tip-desc">
-                          Publish directly as <b>Public</b> on TikTok. Saving as a <i>Private Draft</i> first triggers TikTok&apos;s aggressive secondary compression pass.
-                        </span>
-                      </div>
+                    <div className="dropzone-text">
+                      <h2 className="dropzone-title">Sign in to optimize</h2>
+                      <p className="dropzone-sub">Enter your personal Client ID & Access code.</p>
                     </div>
-                  </div>
+                    <form className="member-inline-form" onSubmit={signInOwner}>
+                      <label htmlFor="member-id">Client ID <span style={{ opacity: 0.6, fontWeight: 'normal', fontSize: '11px' }}>(Optional for Owner)</span></label>
+                      <input id="member-id" className="studio-input" placeholder="e.g. owner or user_xxxxx" autoComplete="off" value={demoClientId} onFocus={() => setFocusedMemberField('id')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoClientId(e.target.value); }} />
+                      <label htmlFor="member-code">Access code</label>
+                      <input id="member-code" className="studio-input" placeholder="Your access code or server token" type="password" autoComplete="off" value={demoCode} onFocus={() => setFocusedMemberField('code')} onBlur={() => setFocusedMemberField(null)} onChange={(e) => { setDemoCode(e.target.value); }} required />
+                      <div className="member-inline-actions">
+                        <button type="submit" className="btn-primary-hero choose-file-label">Continue</button>
+                        <button type="button" className="btn-secondary" onClick={() => { setShowMemberModal(false); setDemoCode(''); }}>Back</button>
+                      </div>
+                      <div className="member-request">
+                        <div className="referral-prompt-row">
+                          <span>Have a referral or invite code?</span>
+                          <button type="button" className="member-link-btn" onClick={() => { setMemberModalMode('referral'); setReferralError(''); }}>Redeem referral code →</button>
+                        </div>
+                        <div className="whatsapp-prompt-row">
+                          <span>Don’t have an access code?</span>
+                          <a
+                            href="https://wa.me/9779813952103?text=Hi%2C%20I%20would%20like%20to%20request%20an%20access%20code%20for%20Obito%20Studio."
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-secondary"
+                          >
+                            Request access code →
+                          </a>
+                        </div>
+                      </div>
+                      {loginError && <p className="member-login-error" role="alert">{loginError}</p>}
+                    </form>
+                  </>}
                 </div>
               </div>
             ) : <Optimizer apiKey={apiKey} onKeyChange={onKeyChange} onBusy={setBusy} />}
@@ -1022,136 +935,66 @@ export default function App() {
         <div className="footer-right">
           <span>Bit-for-Bit Stream Copy · Multi-Platform Native Fluidity</span>
           <span className="footer-legal">
-            <a href="/guide.html">Guide</a> · <a href="/inspector.html">Inspector</a> · <a href="/specs.html">Specs</a> · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a>
           </span>
         </div>
       </footer>
 
-      {/* ---------- Studio Navigation Drawer (Top-Right) ---------- */}
-      {menuOpen && (
-        <>
-          <div className="studio-drawer-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-          <aside className="studio-nav-drawer" role="dialog" aria-modal="true" aria-label="Studio Navigation Menu">
-            <div className="drawer-header">
-              <div className="drawer-title-group">
-                <span className="drawer-eyebrow">OBITO STUDIO</span>
-                <h3 className="drawer-title">Navigation</h3>
-              </div>
+      {/* Bottom Scroll Liquid Blur Gradient Mask (Apple Liquid Glass Dock Vignette) */}
+      <div className="bottom-scroll-blur-mask" aria-hidden="true" />
+
+      {/* ---------- iOS Vision Clear Glass Bottom Dock ---------- */}
+      <nav
+        className="ios-dock-wrap"
+        aria-label="Studio Tools Menu"
+        onTouchStart={onDockTouchStart}
+        onTouchMove={onDockTouchMove}
+        onTouchEnd={onDockTouchEnd}
+        onTouchCancel={() => { setDragOffset(0); setHoveredTab(null); }}
+      >
+        <div
+          className="ios-dock-bar"
+          ref={dockBarRef}
+        >
+          {/* Animated Clear Glass Sliding Pill Lens (Uniform size across all tabs) */}
+          {indicatorStyle.ready && (
+            <div
+              className={`ios-dock-pill-slider ${dragOffset > 0 ? 'dragging' : ''}`}
+              style={{
+                transform: `translateX(${dragOffset > 0 ? dragOffset - (indicatorStyle.width / 2) : indicatorStyle.left}px)`,
+                width: `${indicatorStyle.width}px`
+              }}
+            />
+          )}
+
+          {TABS.map(({ id, label, Icon }) => {
+            const active = activeTab === id;
+            return (
               <button
+                key={id}
                 type="button"
-                className="drawer-close-btn"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
+                data-tab-id={id}
+                className={`ios-dock-item ${active ? 'active' : ''} ${hoveredTab === id ? 'hovered' : ''}`}
+                onClick={(e) => {
+                  if (suppressClickRef.current) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                  }
+                  switchTabWithHaptic(id);
+                }}
+                aria-label={label}
               >
-                <CloseIcon width={16} height={16} />
+                <div className="dock-icon-wrap">
+                  <Icon width={21} height={21} />
+                  {id === 'optimizer' && busy && <span className="dock-pulse" />}
+                </div>
+                <span className="dock-label">{label}</span>
               </button>
-            </div>
-
-            <div className="drawer-nav-list">
-              {TABS.map(({ id, label, desc, Icon }) => {
-                const active = activeTab === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`drawer-nav-item ${active ? 'active' : ''}`}
-                    onClick={() => {
-                      switchTabWithHaptic(id);
-                      setMenuOpen(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="drawer-item-icon">
-                      <Icon width={20} height={20} />
-                      {id === 'optimizer' && busy && <span className="drawer-pulse" />}
-                    </div>
-                    <div className="drawer-item-content">
-                      <div className="drawer-item-title-row">
-                        <span className="drawer-item-label">{label}</span>
-                        {active && <span className="drawer-active-pill">ACTIVE</span>}
-                      </div>
-                      <span className="drawer-item-desc">{desc}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="drawer-footer">
-              {memberPreview && ownerAuthenticated ? (
-                <div className="drawer-account-card">
-                  <div className="drawer-user-info">
-                    <UserIcon width={16} height={16} />
-                    <div>
-                      <span className="drawer-user-label">Signed in as</span>
-                      <strong className="drawer-user-name">{currentUserName || 'Member'}</strong>
-                    </div>
-                  </div>
-                  <div className="drawer-account-actions">
-                    {isMasterOwner && (
-                      <button
-                        type="button"
-                        className="btn-drawer-action"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setShowAdminModal(true);
-                        }}
-                      >
-                        <PremiumKeyIcon width={14} height={14} />
-                        <span>Passes & Referrals</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-drawer-action signout"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onKeyChange('');
-                        setOwnerAuthenticated(false);
-                        setIsMasterOwner(false);
-                        setActiveTab('optimizer');
-                      }}
-                    >
-                      <LogoutIcon width={14} height={14} />
-                      <span>Sign out</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="drawer-signin-card">
-                  <p className="drawer-signin-text">Sign in with an active pass to access exclusive studio mastering.</p>
-                  <button
-                    type="button"
-                    className="btn-drawer-signin"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setMemberModalMode('login');
-                      setShowMemberModal(true);
-                    }}
-                  >
-                    <PremiumKeyIcon width={14} height={14} />
-                    <span>Sign in to Studio</span>
-                  </button>
-                </div>
-              )}
-
-              <div className="drawer-legal-row">
-                <a href="/guide.html">Guide</a>
-                <span>·</span>
-                <a href="/inspector.html">Inspector</a>
-                <span>·</span>
-                <a href="/specs.html">Specs</a>
-                <span>·</span>
-                <a href="/terms.html">Terms</a>
-                <span>·</span>
-                <a href="/privacy.html">Privacy</a>
-                <span>·</span>
-                <a href="mailto:resume@willsonrai.com.np">Contact</a>
-              </div>
-            </div>
-          </aside>
-        </>
-      )}
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

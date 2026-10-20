@@ -1017,32 +1017,12 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
         onDragLeave={() => setDrag(false)}
         onDrop={onDrop}
       >
-        {/* Precision Console Corner Reticles */}
-        <span className="console-reticle corner-tl" aria-hidden="true" />
-        <span className="console-reticle corner-tr" aria-hidden="true" />
-        <span className="console-reticle corner-bl" aria-hidden="true" />
-        <span className="console-reticle corner-br" aria-hidden="true" />
-
-        {/* Hardware Telemetry Strip */}
-        <div className="console-telemetry-strip" aria-hidden="true">
-          <div className="telemetry-node">
-            <span className="telemetry-node-dot" />
-            <span>STREAM SURGERY</span>
-          </div>
-          <div className="telemetry-node">
-            <span>19200 TIMING CLOCK</span>
-          </div>
-          <div className="telemetry-node">
-            <span>DUAL AAC PASS-THROUGH</span>
-          </div>
-        </div>
-
         {/* Bot Avatar Centerpiece (Libraries.dev bot-avatars) */}
         <BotStage phase={phase} busy={busy} />
 
         <div className="dropzone-text">
           <h2 className="dropzone-title">
-            {phase === 'idle' && (drag ? 'Drop your video now' : 'Lossless Mastering Aperture')}
+            {phase === 'idle' && (drag ? 'Drop your video now' : 'Choose a video to optimize')}
             {phase === 'confirm' && 'Check video details'}
             {phase === 'upload' && 'Uploading video...'}
             {phase === 'paused' && 'Upload paused'}
@@ -1052,7 +1032,7 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'error' && 'Notice'}
           </h2>
           <div className="dropzone-sub">
-            {phase === 'idle' && 'Bit-for-bit container remuxing · 60/120fps lock · Up to 600 MB'}
+            {phase === 'idle' && 'MP4 or MOV · Lossless container copy up to 600 MB'}
             {phase === 'confirm' && `${file?.name} · zero re-encoding loss`}
             {phase === 'upload' && `${file?.name} (${fmt(file?.size || 0)})${uploadSpeed ? ' · ' + uploadSpeed : ''}`}
             {phase === 'paused' && `${Math.round(pct)}% uploaded · Tap Resume to continue`}
@@ -1064,17 +1044,6 @@ export default function Optimizer({ apiKey, onKeyChange, onBusy }) {
             {phase === 'error' && error}
           </div>
         </div>
-
-        {/* Format Badges when Idle */}
-        {phase === 'idle' && (
-          <div className="console-format-pills" aria-label="Supported master specifications">
-            <span className="format-pill">MP4 / MOV</span>
-            <span className="format-pill">60 / 120 FPS</span>
-            <span className="format-pill">HEVC / PRORES</span>
-            <span className="format-pill">10-BIT HLG</span>
-            <span className="format-pill">MAX 600 MB</span>
-          </div>
-        )}
 
         {/* Mode Selector and Choose Button when Idle */}
         {phase === 'idle' && (

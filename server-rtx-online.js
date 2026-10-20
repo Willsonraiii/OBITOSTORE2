@@ -952,7 +952,7 @@ const handleChunk = async (req, res) => {
 
   const p = uploadPaths(id);
   try {
-    await pipeline(req, createWriteStream(p.data, { flags: 'a' }));
+    await pipeline(req, createWriteStream(p.data, { flags: 'a', highWaterMark: 1024 * 1024 }));
     const st = await stat(p.data);
     const actualReceived = st.size;
     const actualLen = actualReceived - offset;
